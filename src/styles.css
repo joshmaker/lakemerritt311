@@ -14,6 +14,8 @@
 
   --color-page: #f4f2ed;
   --color-panel: #ffffff;
+  /* A tray slightly darker than the page, for grouping cards (e.g. the charts and their legend). */
+  --color-well: #e9e6df;
   --color-ink: #0b0b0b;
   --color-muted: #52514e;
   --color-line: #e2dfd8;

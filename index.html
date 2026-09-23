@@ -19,15 +19,22 @@
   <p id="status" role="status" class="text-sm text-muted">Loading data&hellip;</p>
   <!-- Widgets stay hidden until main.ts has data to render into them. -->
   <dl id="stats" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" hidden></dl>
-  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-    <section id="top-issues" class="panel p-4" hidden></section>
-    <section id="issues-resolved" class="panel p-4" hidden></section>
+  <!-- The two issue tables, grouped in one tray. While it has data-collapsed, each table shows
+       only its first rows, faded at the bottom; "See all" removes the attribute. -->
+  <div id="issues" class="group relative rounded-lg border border-line bg-well p-3 sm:p-4" data-collapsed hidden>
+    <div class="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
+      <section id="top-issues" class="panel relative p-4" hidden></section>
+      <section id="issues-resolved" class="panel relative p-4" hidden></section>
+    </div>
+    <!-- Sits on the tray's bottom edge, over the faded rows, so it takes no space of its own. -->
+    <button id="issues-expand" type="button" class="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full border border-line bg-panel px-3 py-0.5 text-xs font-medium shadow-sm hover:bg-page sm:bottom-2"></button>
   </div>
-  <div class="space-y-3">
+  <!-- The charts and their shared legend, grouped in one tray with the charts as nested cards. -->
+  <div id="charts" class="space-y-3 rounded-lg border border-line bg-well p-3 sm:p-4" hidden>
     <!-- One legend for both charts: they share topics and colors. Click to show or hide a topic. -->
     <ul id="chart-legend" class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted" aria-label="Show or hide topics in both charts" hidden></ul>
     <!-- Side by side on wide (1200px+) windows. -->
-    <div class="grid grid-cols-1 gap-6 wide:grid-cols-2">
+    <div class="grid grid-cols-1 gap-3 sm:gap-4 wide:grid-cols-2">
       <section id="chart-category" class="panel p-4" hidden></section>
       <section id="chart-weekly" class="panel p-4" hidden></section>
     </div>

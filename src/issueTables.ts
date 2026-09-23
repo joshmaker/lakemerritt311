@@ -9,10 +9,11 @@ const resolvedShare = ({ openedYtd, resolvedYtd }: TopicSummary) =>
   openedYtd.current > 0 ? resolvedYtd / openedYtd.current : 0;
 
 /** Topics by requests opened this year, with each one's share of all requests and the change from last year. */
-export const renderTopReportedIssues = (el: HTMLElement, summaries: TopicSummary[], year: number): void => {
+export const renderTopReportedIssues = (el: HTMLElement, summaries: TopicSummary[], year: number, previewRows?: number): void => {
   const total = summaries.reduce((sum, { openedYtd }) => sum + openedYtd.current, 0);
   renderBarTable(el, {
     title: "Top Reported Issues",
+    previewRows,
     subtitle: `So far in ${String(year)}`,
     labelHeader: "Issue",
     valueHeaders: ["Opened", "Share", `vs ${String(year - 1)}`],
@@ -30,9 +31,10 @@ export const renderTopReportedIssues = (el: HTMLElement, summaries: TopicSummary
 };
 
 /** Topics by the share of this year's requests that are now resolved (status CLOSED). */
-export const renderIssuesResolved = (el: HTMLElement, summaries: TopicSummary[], year: number): void => {
+export const renderIssuesResolved = (el: HTMLElement, summaries: TopicSummary[], year: number, previewRows?: number): void => {
   renderBarTable(el, {
     title: "Issues Resolved",
+    previewRows,
     subtitle: `Of requests opened in ${String(year)}`,
     labelHeader: "Issue",
     valueHeaders: ["Resolved", "%"],

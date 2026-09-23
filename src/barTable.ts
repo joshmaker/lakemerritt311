@@ -17,6 +17,11 @@ export interface BarTable {
   /** Headers for the value columns after the bar. */
   valueHeaders: string[];
   rows: BarTableRow[];
+  /**
+   * If set, rows past this many hide, and a fade covers the table's bottom, while an
+   * ancestor with the `group` class has a `data-collapsed` attribute.
+   */
+  previewRows?: number;
 }
 
 /** A small bar filled to `share`. Hidden from screen readers: the value columns carry the numbers. */
@@ -34,7 +39,10 @@ const bar = (share: number, className = "") => {
  * Each row is one line on wider screens; on phones the bar moves under the label.
  * Replaces any earlier content and shows `el`.
  */
-export const renderBarTable = (el: HTMLElement, { title, subtitle, labelHeader, valueHeaders, rows }: BarTable): void => {
+export const renderBarTable = (
+  el: HTMLElement,
+  { title, subtitle, labelHeader, valueHeaders, rows, previewRows }: BarTable,
+): void => {
   const heading = element("div", "mb-2 flex items-baseline justify-between gap-3");
   heading.append(element("h2", "text-lg font-semibold", title), element("p", "text-xs text-muted", subtitle));
 
@@ -51,14 +59,14 @@ export const renderBarTable = (el: HTMLElement, { title, subtitle, labelHeader, 
 
   const body = element("tbody");
   body.append(
-    ...rows.map(({ label, share, values }) => {
+    ...rows.map(({ label, share, values }, index) => {
       const labelCell = element("th", "py-1 pr-2 text-left font-medium sm:pr-3 sm:whitespace-nowrap", label);
       labelCell.scope = "row";
       labelCell.append(bar(share, "mt-1 sm:hidden"));
       const barCell = element("td", "hidden w-full py-1 sm:table-cell");
       barCell.append(bar(share));
 
-      const row = element("tr");
+      const row = element("tr", previewRows !== undefined && index >= previewRows ? "group-data-collapsed:hidden" : "");
       row.append(
         labelCell,
         barCell,
@@ -71,5 +79,11 @@ export const renderBarTable = (el: HTMLElement, { title, subtitle, labelHeader, 
   const table = element("table", "w-full text-sm");
   table.append(head, body);
   el.replaceChildren(heading, table);
+  if (previewRows !== undefined && rows.length > previewRows) {
+    // Fades the last visible rows into the card, hinting there's more below.
+    const fade = element("div", "pointer-events-none absolute inset-x-0 bottom-0 hidden h-20 rounded-b-md bg-linear-to-t from-panel to-transparent group-data-collapsed:block");
+    fade.setAttribute("aria-hidden", "true");
+    el.append(fade);
+  }
   el.hidden = false;
 };

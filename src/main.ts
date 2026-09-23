@@ -11,6 +11,8 @@ const DATA_URL = "data/api/311.json";
 /** Values past the top N of a field are summed into one "All others" series. */
 const TOP_N = 12;
 /** How much of each chart shows before zooming out. */
+/** Each issue table shows this many rows until "See all" is clicked. */
+const ISSUES_PREVIEW_ROWS = 6;
 const MONTHLY_ZOOM_MONTHS = 24;
 const WEEKLY_ZOOM_MONTHS = 5;
 /** Recent Requests shows this many at a time. */
@@ -54,11 +56,21 @@ try {
 
   const summaries = topicSummaries(requests, now);
   const year = Number(now.slice(0, 4));
-  renderTopReportedIssues(getElement("top-issues"), summaries, year);
-  renderIssuesResolved(getElement("issues-resolved"), summaries, year);
+  renderTopReportedIssues(getElement("top-issues"), summaries, year, ISSUES_PREVIEW_ROWS);
+  renderIssuesResolved(getElement("issues-resolved"), summaries, year, ISSUES_PREVIEW_ROWS);
+  const issues = getElement("issues");
+  const expand = getElement("issues-expand");
+  expand.textContent = `See all ${String(summaries.length)} issues`;
+  expand.hidden = summaries.length <= ISSUES_PREVIEW_ROWS;
+  expand.addEventListener("click", () => {
+    issues.removeAttribute("data-collapsed");
+    expand.remove();
+  });
+  issues.hidden = false;
 
   const monthly = monthlyCounts(requests, "topic", TOP_N);
   const topics = monthly.series.map(({ name }) => name);
+  getElement("charts").hidden = false; // the tray holding both charts and their legend
   const charts = [
     show(
       "chart-category",
