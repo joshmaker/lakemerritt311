@@ -1,25 +1,15 @@
 import type { BarSeriesOption, EChartsOption } from "echarts";
 import { BarChart } from "echarts/charts";
-import {
-  DataZoomComponent,
-  GridComponent,
-  LegendComponent,
-  TitleComponent,
-  TooltipComponent,
-} from "echarts/components";
+import { DataZoomComponent, GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
-import { ALL_OTHERS, type MonthlyCounts, type MonthlyResolution } from "./data";
+import { ALL_OTHERS, type StackedCounts, type WeeklyCounts } from "./data";
+import { element } from "./dom";
+import { isPartialWeek } from "./time";
 
-echarts.use([
-  BarChart,
-  DataZoomComponent,
-  GridComponent,
-  LegendComponent,
-  TitleComponent,
-  TooltipComponent,
-  CanvasRenderer,
-]);
+// LegendComponent stays registered even though the legend is hidden: the page's shared
+// HTML legend toggles series through its actions (see chartLegend.ts).
+echarts.use([BarChart, DataZoomComponent, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
 
 // Colors come from the Tailwind theme in styles.css, so the palette lives in one place.
 const cssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -37,58 +27,103 @@ for (;;) {
   SERIES_COLORS.push(color);
 }
 
-interface BaseOptions {
-  title: string;
-  periods: string[];
-  yAxisName: string;
-  /** Show a legend, moving the plot area down to make room. */
-  legend?: boolean;
-  /** Center categories between axis ticks, as bars need. */
-  bars?: boolean;
-}
+/** The color ECharts gives the series at `index`; "All others" is always gray. */
+export const seriesColor = (name: string, index: number): string =>
+  name === ALL_OTHERS ? OTHERS_COLOR : (SERIES_COLORS[index % SERIES_COLORS.length] ?? MUTED);
 
-/** Layout and styling shared by every chart: title, month x-axis, value y-axis, zoom slider. */
-const baseOption = ({ title, periods, yAxisName, legend = false, bars = false }: BaseOptions): EChartsOption => ({
+/** "#rrggbb" plus an alpha, as rgba() for the canvas. */
+const withAlpha = (hex: string, alpha: number) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${String(r)}, ${String(g)}, ${String(b)}, ${String(alpha)})`;
+};
+
+/** The initial zoom: from the bar at index `zoomStart` through the last one. */
+const zoomRange = (periods: string[], zoomStart: number) => ({
+  startValue: Math.max(0, zoomStart),
+  endValue: Math.max(0, periods.length - 1),
+});
+
+/**
+ * Layout and styling shared by every chart: category x-axis, value y-axis, and a quiet zoom
+ * slider. The chart opens zoomed in from the bar at `zoomStart` (an index) through the last one.
+ */
+const baseOption = (periods: string[], yAxisName: string, zoomStart = 0): EChartsOption => ({
   backgroundColor: "transparent",
   color: SERIES_COLORS,
   textStyle: { color: TEXT },
-  title: {
-    text: title,
-    left: 16,
-    top: 12,
-    textStyle: { fontSize: 14, fontWeight: 600, color: TEXT },
-  },
-  legend: {
-    show: legend,
-    type: "scroll",
-    top: 44,
-    textStyle: { color: MUTED, fontSize: 11 },
-  },
-  grid: { left: 56, right: 24, top: legend ? 100 : 60, bottom: 70 },
+  legend: { show: false },
+  grid: { left: 48, right: 16, top: 32, bottom: 64 },
   xAxis: {
     type: "category",
     data: periods,
-    boundaryGap: bars,
+    boundaryGap: true,
     axisLine: { lineStyle: { color: BORDER } },
     axisLabel: { color: MUTED },
   },
   yAxis: {
     type: "value",
     name: yAxisName,
+    nameTextStyle: { color: MUTED },
     axisLine: { show: false },
     splitLine: { lineStyle: { color: BORDER } },
     axisLabel: { color: MUTED },
   },
   dataZoom: [
-    { type: "inside" },
-    { type: "slider", bottom: 16, textStyle: { color: MUTED } },
+    { type: "inside", ...zoomRange(periods, zoomStart) },
+    {
+      type: "slider",
+      ...zoomRange(periods, zoomStart),
+      bottom: 8,
+      height: 24,
+      borderColor: BORDER,
+      backgroundColor: "transparent",
+      fillerColor: withAlpha(MUTED, 0.08),
+      dataBackground: { lineStyle: { color: BORDER }, areaStyle: { color: BORDER, opacity: 0.6 } },
+      selectedDataBackground: { lineStyle: { color: MUTED }, areaStyle: { color: MUTED, opacity: 0.25 } },
+      handleStyle: { color: PANEL, borderColor: MUTED },
+      moveHandleStyle: { color: BORDER },
+      emphasis: { handleStyle: { borderColor: TEXT }, moveHandleStyle: { color: MUTED } },
+      textStyle: { color: MUTED },
+    },
   ],
 });
 
-/** Stacked monthly bars, one series per value. */
-export const stackedBarOption = (title: string, { periods, series }: MonthlyCounts): EChartsOption => ({
-  ...baseOption({ title, periods, yAxisName: "Requests", legend: true, bars: true }),
-  tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+const whole = new Intl.NumberFormat();
+const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${String(c.charCodeAt(0))};`);
+
+interface StackedBarChart {
+  /** Axis label for each bar. */
+  labels: string[];
+  series: StackedCounts["series"];
+  /** Tooltip heading for the bar at `index`; defaults to its axis label. */
+  tooltipTitle?: (index: number) => string;
+  /** Index of the first bar shown at load; earlier ones are reachable by zooming out. */
+  zoomStart?: number;
+}
+
+/** Stacked bars, one series per value. The tooltip lists the series in that bar and their total. */
+export const stackedBarOption = ({
+  labels,
+  series,
+  tooltipTitle = (index) => labels[index] ?? "",
+  zoomStart,
+}: StackedBarChart): EChartsOption => ({
+  ...baseOption(labels, "Requests", zoomStart),
+  tooltip: {
+    trigger: "axis",
+    axisPointer: { type: "shadow" },
+    formatter: (params) => {
+      const points = (Array.isArray(params) ? params : [params]).filter((p) => Number(p.value) > 0);
+      const index = (Array.isArray(params) ? params[0] : params)?.dataIndex;
+      if (index === undefined) return "";
+      const lines = points.map(
+        (p) =>
+          `${typeof p.marker === "string" ? p.marker : ""}${escapeHtml(p.seriesName ?? "")}: <b>${whole.format(Number(p.value))}</b>`,
+      );
+      const total = points.reduce((sum, p) => sum + Number(p.value), 0);
+      return [escapeHtml(tooltipTitle(index)), ...lines, `Total: <b>${whole.format(total)}</b>`].join("<br/>");
+    },
+  },
   series: series.map(
     ({ name, data }): BarSeriesOption => ({
       name,
@@ -103,42 +138,42 @@ export const stackedBarOption = (title: string, { periods, series }: MonthlyCoun
   ),
 });
 
-const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
-
-/** A bar per month for the median; months with no closures have no bar. */
-export const medianResolutionOption = (
-  title: string,
-  { periods, medianDays, closedCounts }: MonthlyResolution,
-): EChartsOption => ({
-  ...baseOption({ title, periods, yAxisName: "Days", bars: true }),
-  tooltip: {
-    trigger: "axis",
-    axisPointer: { type: "shadow" },
-    formatter: (params) => {
-      const point = Array.isArray(params) ? params[0] : params;
-      if (!point) return "";
-      const days = medianDays[point.dataIndex];
-      const count = closedCounts[point.dataIndex] ?? 0;
-      const median = days == null ? "No closures" : `${oneDecimal.format(days)} days`;
-      return `${point.name}<br/>Median: <b>${median}</b><br/>Closed requests: ${count.toLocaleString()}`;
-    },
-  },
-  series: [{ name: "Median resolution time", type: "bar", barCategoryGap: "15%", data: medianDays }],
-});
+const dayMonth = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+const formatDay = (isoDate: string) => dayMonth.format(new Date(`${isoDate}T00:00:00Z`));
 
 /**
- * Shows `el` and renders `option` into it, resizing with the container.
- * The chart is disposed when `signal` aborts.
+ * Stacked bars per week, labeled by each week's first day; the tooltip shows its dates and flags
+ * partial weeks. Opens zoomed in to the weeks ending on or after `zoomFrom` (an ISO date), if given.
  */
-export const renderChart = (el: HTMLElement, option: EChartsOption, signal: AbortSignal): void => {
+export const weeklyStackedOption = ({ weeks, series }: WeeklyCounts, zoomFrom?: string): EChartsOption =>
+  stackedBarOption({
+    labels: weeks.map(({ start }) => formatDay(start)),
+    series,
+    zoomStart: zoomFrom ? weeks.findIndex(({ end }) => end >= zoomFrom) : 0,
+    tooltipTitle: (index) => {
+      const week = weeks[index];
+      if (!week) return "";
+      return `${formatDay(week.start)} – ${formatDay(week.end)}${isPartialWeek(week) ? " (partial week)" : ""}`;
+    },
+  });
+
+export type Chart = ReturnType<typeof echarts.init>;
+
+/**
+ * Fills the panel `el` with a `title` heading and a chart of `option`, shows it, and keeps
+ * the chart sized to its container. The chart is disposed when `signal` aborts.
+ */
+export const renderChart = (el: HTMLElement, title: string, option: EChartsOption, signal: AbortSignal): Chart => {
+  const canvas = element("div", "h-[480px]");
+  el.replaceChildren(element("h2", "text-lg font-semibold", title), canvas);
   el.hidden = false; // ECharts measures the element on init, so it must be visible first.
-  const chart = echarts.init(el);
+  const chart = echarts.init(canvas);
   chart.setOption(option);
 
   const observer = new ResizeObserver(() => {
     chart.resize();
   });
-  observer.observe(el);
+  observer.observe(canvas);
 
   signal.addEventListener(
     "abort",
@@ -148,4 +183,5 @@ export const renderChart = (el: HTMLElement, option: EChartsOption, signal: Abor
     },
     { once: true },
   );
+  return chart;
 };

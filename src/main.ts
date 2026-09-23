@@ -1,12 +1,20 @@
 import type { EChartsOption } from "echarts";
-import { medianResolutionOption, renderChart, stackedBarOption } from "./chart";
-import { loadRequests, monthlyCounts, monthlyMedianResolution, recentActivity } from "./data";
+import { renderChart, seriesColor, stackedBarOption, weeklyStackedOption } from "./chart";
+import { renderChartLegend } from "./chartLegend";
+import { loadRequests, monthlyCounts, newestFirst, recentActivity, topicSummaries, weeklyCounts } from "./data";
+import { renderIssuesResolved, renderTopReportedIssues } from "./issueTables";
+import { renderRecentRequests } from "./recentRequests";
 import { renderStatTiles } from "./statTiles";
-import { californiaNow } from "./time";
+import { californiaNow, monthsBefore } from "./time";
 
 const DATA_URL = "data/api/311.json";
 /** Values past the top N of a field are summed into one "All others" series. */
 const TOP_N = 12;
+/** How much of each chart shows before zooming out. */
+const MONTHLY_ZOOM_MONTHS = 24;
+const WEEKLY_ZOOM_MONTHS = 5;
+/** Recent Requests shows this many at a time. */
+const RECENT_PAGE_SIZE = 50;
 
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 const whole = new Intl.NumberFormat();
@@ -28,15 +36,15 @@ if (import.meta.hot) {
 }
 
 const statusEl = getElement("status");
-const show = (id: string, option: EChartsOption) => {
-  renderChart(getElement(id), option, lifetime.signal);
-};
+const show = (id: string, title: string, option: EChartsOption) =>
+  renderChart(getElement(id), title, option, lifetime.signal);
 
 try {
   const requests = await loadRequests(DATA_URL, lifetime.signal);
   statusEl.hidden = true;
 
-  const recent = recentActivity(requests, californiaNow());
+  const now = californiaNow();
+  const recent = recentActivity(requests, now);
   renderStatTiles(getElement("stats"), [
     { label: "311 Requests / Day", value: oneDecimal.format(recent.opened30 / 30), caption: "Average last 30 days" },
     { label: "311 Request Count", value: whole.format(recent.opened30), caption: "Total last 30 days" },
@@ -44,14 +52,39 @@ try {
     { label: "311 Requests Closed", value: whole.format(recent.closed7), caption: "Total last 7 days" },
   ]);
 
-  show(
-    "chart-category",
-    stackedBarOption("311 Requests per Month by Category", monthlyCounts(requests, "topic", TOP_N)),
+  const summaries = topicSummaries(requests, now);
+  const year = Number(now.slice(0, 4));
+  renderTopReportedIssues(getElement("top-issues"), summaries, year);
+  renderIssuesResolved(getElement("issues-resolved"), summaries, year);
+
+  const monthly = monthlyCounts(requests, "topic", TOP_N);
+  const topics = monthly.series.map(({ name }) => name);
+  const charts = [
+    show(
+      "chart-category",
+      "311 Requests per Month by Category",
+      stackedBarOption({
+        labels: monthly.periods,
+        series: monthly.series,
+        zoomStart: monthly.periods.length - MONTHLY_ZOOM_MONTHS,
+      }),
+    ),
+    show(
+      "chart-weekly",
+      `311 Requests per Week by Category, ${String(year)}`,
+      // Same series, in the same order, as the monthly chart, so each topic keeps its color.
+      weeklyStackedOption(weeklyCounts(requests, now, "topic", topics), monthsBefore(now, WEEKLY_ZOOM_MONTHS)),
+    ),
+  ];
+  renderChartLegend(
+    getElement("chart-legend"),
+    topics.map((name, index) => ({ name, color: seriesColor(name, index) })),
+    (name) => {
+      for (const chart of charts) chart.dispatchAction({ type: "legendToggleSelect", name });
+    },
   );
-  show(
-    "chart-resolution",
-    medianResolutionOption("Median Resolution Time of Closed Requests, by Month Closed", monthlyMedianResolution(requests)),
-  );
+
+  renderRecentRequests(getElement("recent-requests"), newestFirst(requests), now, RECENT_PAGE_SIZE);
 } catch (err) {
   if (!lifetime.signal.aborted) {
     statusEl.textContent = `Error loading data: ${err instanceof Error ? err.message : String(err)}`;
