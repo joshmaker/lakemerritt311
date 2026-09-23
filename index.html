@@ -19,15 +19,17 @@
   <p id="status" role="status" class="text-sm text-muted">Loading data&hellip;</p>
   <!-- Widgets stay hidden until main.ts has data to render into them. -->
   <dl id="stats" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" hidden></dl>
-  <!-- The two issue tables, grouped in one tray. While it has data-collapsed, each table shows
-       only its first rows, faded at the bottom; "See all" removes the attribute. -->
-  <div id="issues" class="group relative rounded-lg border border-line bg-well p-3 sm:p-4" data-collapsed hidden>
-    <div class="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
+  <!-- The two issue tables. Each starts collapsed with its own "See all" (see barTable.ts).
+       Side by side (lg+) they sit in one tray with a shared "See all" that expands both;
+       stacked, there's no tray and each card keeps its own button. -->
+  <div id="issues" class="group/issues lg:relative lg:rounded-lg lg:border lg:border-line lg:bg-well lg:p-4" hidden>
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-4">
       <section id="top-issues" class="panel relative p-4" hidden></section>
       <section id="issues-resolved" class="panel relative p-4" hidden></section>
     </div>
-    <!-- Sits on the tray's bottom edge, over the faded rows, so it takes no space of its own. -->
-    <button id="issues-expand" type="button" class="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full border border-line bg-panel px-3 py-0.5 text-xs font-medium shadow-sm hover:bg-page sm:bottom-2"></button>
+    <!-- Sits on the tray's bottom edge, over the faded rows, so it takes no space of its own.
+         Only on lg+, and only while a card is still collapsed. -->
+    <button id="issues-expand" type="button" class="absolute bottom-2 left-1/2 hidden -translate-x-1/2 rounded-full border border-line bg-panel px-3 py-0.5 text-xs font-medium shadow-sm hover:bg-page lg:group-has-[[data-collapsed]]/issues:block"></button>
   </div>
   <!-- The charts and their shared legend, grouped in one tray with the charts as nested cards. -->
   <div id="charts" class="space-y-3 rounded-lg border border-line bg-well p-3 sm:p-4" hidden>

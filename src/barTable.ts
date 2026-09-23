@@ -18,8 +18,8 @@ export interface BarTable {
   valueHeaders: string[];
   rows: BarTableRow[];
   /**
-   * If set, rows past this many hide, and a fade covers the table's bottom, while an
-   * ancestor with the `group` class has a `data-collapsed` attribute.
+   * If set, the table starts collapsed: rows past this many hide, a fade covers its bottom,
+   * and a "See all" pill on its bottom edge (shown below `lg`) expands it.
    */
   previewRows?: number;
 }
@@ -37,12 +37,13 @@ const bar = (share: number, className = "") => {
 /**
  * Fills `el` with a titled table, one row per item: label, bar, then value columns.
  * Each row is one line on wider screens; on phones the bar moves under the label.
- * Replaces any earlier content and shows `el`.
+ * Replaces any earlier content and shows `el`. Returns a function that expands a
+ * collapsed table (see `previewRows`); it does nothing otherwise.
  */
 export const renderBarTable = (
   el: HTMLElement,
   { title, subtitle, labelHeader, valueHeaders, rows, previewRows }: BarTable,
-): void => {
+): (() => void) => {
   const heading = element("div", "mb-2 flex items-baseline justify-between gap-3");
   heading.append(element("h2", "text-lg font-semibold", title), element("p", "text-xs text-muted", subtitle));
 
@@ -79,11 +80,28 @@ export const renderBarTable = (
   const table = element("table", "w-full text-sm");
   table.append(head, body);
   el.replaceChildren(heading, table);
-  if (previewRows !== undefined && rows.length > previewRows) {
-    // Fades the last visible rows into the card, hinting there's more below.
-    const fade = element("div", "pointer-events-none absolute inset-x-0 bottom-0 hidden h-20 rounded-b-md bg-linear-to-t from-panel to-transparent group-data-collapsed:block");
-    fade.setAttribute("aria-hidden", "true");
-    el.append(fade);
-  }
   el.hidden = false;
+  if (previewRows === undefined || rows.length <= previewRows) return () => undefined;
+
+  // Collapsed: `el` is the `group` whose data-collapsed attribute hides the extra rows.
+  el.classList.add("group");
+  el.setAttribute("data-collapsed", "");
+  // Fades the last visible rows into the card, hinting there's more below.
+  const fade = element("div", "pointer-events-none absolute inset-x-0 bottom-0 hidden h-20 rounded-b-md bg-linear-to-t from-panel to-transparent group-data-collapsed:block");
+  fade.setAttribute("aria-hidden", "true");
+  // Straddles the card's bottom edge. Hidden on lg+, where a shared button expands both tables.
+  const seeAll = element(
+    "button",
+    "absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-line bg-panel px-3 py-0.5 text-xs font-medium shadow-sm hover:bg-page lg:hidden",
+    `See all ${String(rows.length)}`,
+  );
+  seeAll.type = "button";
+  const expand = () => {
+    el.removeAttribute("data-collapsed");
+    fade.remove();
+    seeAll.remove();
+  };
+  seeAll.addEventListener("click", expand);
+  el.append(fade, seeAll);
+  return expand;
 };

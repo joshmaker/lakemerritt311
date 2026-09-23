@@ -56,17 +56,17 @@ try {
 
   const summaries = topicSummaries(requests, now);
   const year = Number(now.slice(0, 4));
-  renderTopReportedIssues(getElement("top-issues"), summaries, year, ISSUES_PREVIEW_ROWS);
-  renderIssuesResolved(getElement("issues-resolved"), summaries, year, ISSUES_PREVIEW_ROWS);
-  const issues = getElement("issues");
-  const expand = getElement("issues-expand");
-  expand.textContent = `See all ${String(summaries.length)} issues`;
-  expand.hidden = summaries.length <= ISSUES_PREVIEW_ROWS;
-  expand.addEventListener("click", () => {
-    issues.removeAttribute("data-collapsed");
-    expand.remove();
+  const expanders = [
+    renderTopReportedIssues(getElement("top-issues"), summaries, year, ISSUES_PREVIEW_ROWS),
+    renderIssuesResolved(getElement("issues-resolved"), summaries, year, ISSUES_PREVIEW_ROWS),
+  ];
+  // Side by side, one shared button expands both tables (it hides itself once neither is collapsed).
+  const expandBoth = getElement("issues-expand");
+  expandBoth.textContent = `See all ${String(summaries.length)} issues`;
+  expandBoth.addEventListener("click", () => {
+    for (const expand of expanders) expand();
   });
-  issues.hidden = false;
+  getElement("issues").hidden = false;
 
   const monthly = monthlyCounts(requests, "topic", TOP_N);
   const topics = monthly.series.map(({ name }) => name);

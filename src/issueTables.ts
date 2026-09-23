@@ -8,10 +8,13 @@ const percent = new Intl.NumberFormat(undefined, { style: "percent" });
 const resolvedShare = ({ openedYtd, resolvedYtd }: TopicSummary) =>
   openedYtd.current > 0 ? resolvedYtd / openedYtd.current : 0;
 
-/** Topics by requests opened this year, with each one's share of all requests and the change from last year. */
-export const renderTopReportedIssues = (el: HTMLElement, summaries: TopicSummary[], year: number, previewRows?: number): void => {
+/**
+ * Topics by requests opened this year, with each one's share of all requests and the change from
+ * last year. Returns a function that expands the table if it started collapsed.
+ */
+export const renderTopReportedIssues = (el: HTMLElement, summaries: TopicSummary[], year: number, previewRows?: number): (() => void) => {
   const total = summaries.reduce((sum, { openedYtd }) => sum + openedYtd.current, 0);
-  renderBarTable(el, {
+  return renderBarTable(el, {
     title: "Top Reported Issues",
     previewRows,
     subtitle: `So far in ${String(year)}`,
@@ -30,8 +33,11 @@ export const renderTopReportedIssues = (el: HTMLElement, summaries: TopicSummary
   });
 };
 
-/** Topics by the share of this year's requests that are now resolved (status CLOSED). */
-export const renderIssuesResolved = (el: HTMLElement, summaries: TopicSummary[], year: number, previewRows?: number): void => {
+/**
+ * Topics by the share of this year's requests that are now resolved (status CLOSED). Returns a
+ * function that expands the table if it started collapsed.
+ */
+export const renderIssuesResolved = (el: HTMLElement, summaries: TopicSummary[], year: number, previewRows?: number): (() => void) =>
   renderBarTable(el, {
     title: "Issues Resolved",
     previewRows,
@@ -49,4 +55,3 @@ export const renderIssuesResolved = (el: HTMLElement, summaries: TopicSummary[],
         ],
       })),
   });
-};
