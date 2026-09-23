@@ -4,7 +4,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [master] # merges to master
+    branches: [main] # merges to main (the default branch on GitHub)
   workflow_dispatch: # "Run workflow" button in the Actions tab, e.g. to refresh the data
 
 permissions:
