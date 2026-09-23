@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>311 Requests</title>
+<link rel="stylesheet" href="/src/styles.css">
+</head>
+<body class="bg-page p-4 font-sans text-ink sm:p-6">
+
+<header class="mb-4">
+  <h1 class="text-xl font-semibold">311 Requests</h1>
+  <p class="text-sm text-muted">Monthly request volume and resolution time, 2018 onward</p>
+</header>
+
+<main class="space-y-6">
+  <p id="status" role="status" class="text-sm text-muted">Loading data&hellip;</p>
+  <!-- Widgets stay hidden until main.ts has data to render into them. -->
+  <dl id="stats" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" hidden></dl>
+  <div id="chart-category" class="panel h-[560px]" hidden></div>
+  <div id="chart-resolution" class="panel h-[560px]" hidden></div>
+</main>
+
+<script type="module" src="/src/main.ts"></script>
+
+</body>
+</html>

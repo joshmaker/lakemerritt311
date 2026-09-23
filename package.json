@@ -1,0 +1,33 @@
+{
+  "name": "lakemerritt",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "lint": "eslint . && npm run typecheck",
+    "lint:fix": "eslint . --fix",
+    "fetch-data": "bash scripts/fetch.sh"
+  },
+  "dependencies": {
+    "d3-array": "^3.2.4",
+    "d3-time": "^3.1.0",
+    "echarts": "^6.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/d3-array": "^3.2.2",
+    "@types/d3-time": "^3.0.4",
+    "@types/node": "^26.6.2",
+    "eslint": "^9.39.5",
+    "jiti": "^2.7.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.1",
+    "vite": "^8.3.0"
+  }
+}

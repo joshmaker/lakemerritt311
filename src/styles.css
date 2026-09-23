@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+/* data/ holds large JSON exports; don't scan it for class names. */
+@source not "../data";
+
+/*
+ * Page palette. Hex (not oklch) because chart.ts reads --color-ink, --color-muted
+ * and --color-line for ECharts, which draws on canvas. `static` keeps every
+ * variable in the CSS even if no class uses it yet.
+ */
+@theme static {
+  --color-page: #f4f2ed;
+  --color-panel: #ffffff;
+  --color-ink: #0b0b0b;
+  --color-muted: #52514e;
+  --color-line: #e2dfd8;
+
+  /*
+   * Chart series colors, used in this order (Flat UI style). Ordered so neighbors in a
+   * stack differ most, for normal and colorblind vision; the faintest (light cyan) is
+   * last. Keep it at about 12, since more colors can't stay distinguishable.
+   */
+  --color-series-1: #3498db;
+  --color-series-2: #e67e22;
+  --color-series-3: #9b59b6;
+  --color-series-4: #1abc9c;
+  --color-series-5: #34495e;
+  --color-series-6: #f1c40f;
+  --color-series-7: #fd79a8;
+  --color-series-8: #6c5ce7;
+  --color-series-9: #c0392b;
+  --color-series-10: #74b9ff;
+  --color-series-11: #8d6e63;
+  --color-series-12: #81ecec;
+  /* The "All others" series: a neutral gray so it recedes behind real categories. */
+  --color-series-others: #95a5a6;
+}
+
+/* A white card with a thin border; the base for every widget. */
+@utility panel {
+  @apply rounded-md border border-line bg-panel;
+}
