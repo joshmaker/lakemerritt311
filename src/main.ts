@@ -10,9 +10,9 @@ import { californiaNow, monthsBefore } from "./time";
 const DATA_URL = "data/api/311.json";
 /** Values past the top N of a field are summed into one "All others" series. */
 const TOP_N = 12;
-/** How much of each chart shows before zooming out. */
 /** Each issue table shows this many rows until "See all" is clicked. */
 const ISSUES_PREVIEW_ROWS = 6;
+/** How much of each chart shows before zooming out. */
 const MONTHLY_ZOOM_MONTHS = 24;
 const WEEKLY_ZOOM_MONTHS = 5;
 /** Recent Requests shows this many at a time. */
