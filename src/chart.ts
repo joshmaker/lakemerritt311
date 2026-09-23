@@ -159,16 +159,93 @@ export const weeklyStackedOption = ({ weeks, series }: WeeklyCounts, zoomFrom?: 
 
 export type Chart = ReturnType<typeof echarts.init>;
 
+// Heroicons-style outline icons (static markup, safe to insert).
+const ICON_ATTRS = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="size-5" aria-hidden="true"';
+const EXPAND_ICON = `<svg ${ICON_ATTRS}><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"/></svg>`;
+const CLOSE_ICON = `<svg ${ICON_ATTRS}><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>`;
+
+/** Classes that pin a panel over the whole window, above a dimmed page. */
+const FULL_SCREEN = ["fixed", "inset-0", "z-50", "flex", "flex-col", "sm:inset-4", "shadow-[0_0_0_100vmax_rgb(0_0_0/0.45)]"];
+
+let nextChartId = 0;
+
+/** A display-only legend for full screen, where the page's shared legend is hidden behind the overlay. */
+const fullScreenLegend = (option: EChartsOption) => {
+  const names = (Array.isArray(option.series) ? option.series : []).map(({ name }) => String(name));
+  const list = element("ul", "mb-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted");
+  list.setAttribute("aria-label", "Topics");
+  list.append(
+    ...names.map((name, index) => {
+      const swatch = element("span", "size-3 shrink-0 rounded-sm");
+      swatch.style.backgroundColor = seriesColor(name, index);
+      const item = element("li", "flex items-center gap-1.5");
+      item.dataset.name = name;
+      item.append(swatch, name);
+      return item;
+    }),
+  );
+  return list;
+};
+
 /**
- * Fills the panel `el` with a `title` heading and a chart of `option`, shows it, and keeps
- * the chart sized to its container. The chart is disposed when `signal` aborts.
+ * Fills the panel `el` with a `title` heading, a full-screen toggle, and a chart of `option`;
+ * shows it and keeps the chart sized to its container. Full screen adds a legend (faded for
+ * topics hidden with the page legend); Esc or the close button returns it. The chart is
+ * disposed when `signal` aborts.
  */
 export const renderChart = (el: HTMLElement, title: string, option: EChartsOption, signal: AbortSignal): Chart => {
+  const heading = element("h2", "text-lg font-semibold", title);
+  heading.id = `chart-title-${String(nextChartId++)}`;
+  const toggle = element("button", "-m-1.5 rounded-md p-1.5 text-muted hover:bg-page hover:text-ink");
+  toggle.type = "button";
+  const header = element("div", "flex items-start justify-between gap-3");
+  header.append(heading, toggle);
+  const legend = fullScreenLegend(option);
   const canvas = element("div", "h-[480px]");
-  el.replaceChildren(element("h2", "text-lg font-semibold", title), canvas);
+  el.replaceChildren(header, legend, canvas);
   el.hidden = false; // ECharts measures the element on init, so it must be visible first.
   const chart = echarts.init(canvas);
   chart.setOption(option);
+
+  let fullScreen = false;
+  const setFullScreen = (on: boolean) => {
+    fullScreen = on;
+    for (const name of FULL_SCREEN) el.classList.toggle(name, on);
+    canvas.classList.toggle("h-[480px]", !on);
+    canvas.classList.toggle("min-h-0", on);
+    canvas.classList.toggle("flex-1", on);
+    document.body.classList.toggle("overflow-hidden", on); // no page scrolling behind it
+    if (on) {
+      el.setAttribute("role", "dialog");
+      el.setAttribute("aria-modal", "true");
+      el.setAttribute("aria-labelledby", heading.id);
+    } else {
+      for (const attr of ["role", "aria-modal", "aria-labelledby"]) el.removeAttribute(attr);
+    }
+    toggle.innerHTML = on ? CLOSE_ICON : EXPAND_ICON;
+    toggle.setAttribute("aria-label", on ? "Exit full screen" : "Show chart full screen");
+    toggle.title = on ? "Exit full screen (Esc)" : "Full screen";
+    legend.hidden = !on;
+    if (on) {
+      const [legendState] = [chart.getOption().legend].flat() as { selected?: Record<string, boolean> }[];
+      for (const item of legend.querySelectorAll("li")) {
+        item.classList.toggle("opacity-40", legendState?.selected?.[item.dataset.name ?? ""] === false);
+      }
+    }
+  };
+  setFullScreen(false);
+  // After a switch, keep keyboard focus on the button, which stays in the top right corner.
+  const switchTo = (on: boolean) => {
+    setFullScreen(on);
+    toggle.focus();
+  };
+  toggle.addEventListener("click", () => {
+    switchTo(!fullScreen);
+  });
+  const onKeydown = (event: KeyboardEvent) => {
+    if (fullScreen && event.key === "Escape") switchTo(false);
+  };
+  document.addEventListener("keydown", onKeydown);
 
   const observer = new ResizeObserver(() => {
     chart.resize();
@@ -178,6 +255,8 @@ export const renderChart = (el: HTMLElement, title: string, option: EChartsOptio
   signal.addEventListener(
     "abort",
     () => {
+      document.removeEventListener("keydown", onKeydown);
+      if (fullScreen) setFullScreen(false);
       observer.disconnect();
       chart.dispose();
     },
