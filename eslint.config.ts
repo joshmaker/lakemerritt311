@@ -11,6 +11,7 @@ export default defineConfig(
       parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
     },
   },
-  // Config files live outside the browser tsconfig; typecheck them with tsc only.
-  { files: ["*.config.ts"], extends: [tseslint.configs.disableTypeChecked] },
+  // Config files and Node scripts live outside the browser tsconfig; tsc type-checks them
+  // via tsconfig.node.json instead.
+  { files: ["*.config.ts", "scripts/**/*.ts"], extends: [tseslint.configs.disableTypeChecked] },
 );

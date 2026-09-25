@@ -1,40 +1,8 @@
-import { element } from "./dom";
+import { CONTROL, element, select } from "./dom";
+import { matchesTone, STATUS_OPTIONS, statusPill } from "./status";
 import { daysBetween, isTimestamp } from "./time";
 import { type Topic, TOPICS, topicOf } from "./topics";
-import type { RequestStatus, ServiceRequest } from "./types/serviceRequest";
-
-/** Status categories: each has a name (for the Status filter) and a pill color. */
-const TONES = {
-  done: { label: "Resolved", pill: "bg-emerald-100 text-emerald-800" },
-  active: { label: "In progress", pill: "bg-sky-100 text-sky-800" },
-  waiting: { label: "Waiting", pill: "bg-amber-100 text-amber-800" },
-  ended: { label: "Ended without a fix", pill: "bg-stone-200 text-stone-700" },
-};
-type Tone = keyof typeof TONES;
-
-const STATUSES: Record<RequestStatus, { label: string; tone: Tone }> = {
-  CLOSED: { label: "Closed", tone: "done" },
-  OPEN: { label: "Open", tone: "active" },
-  WOCREATE: { label: "Work order", tone: "active" },
-  PENDING: { label: "Pending", tone: "waiting" },
-  "WAITING ON CUSTOMER": { label: "Waiting on customer", tone: "waiting" },
-  REFERRED: { label: "Referred", tone: "ended" },
-  UNFUNDED: { label: "Unfunded", tone: "ended" },
-  CANCEL: { label: "Canceled", tone: "ended" },
-  "EVALUATED - NO FURTHER ACTION": { label: "No action", tone: "ended" },
-  "GONE ON ARRIVAL": { label: "Gone on arrival", tone: "ended" },
-};
-
-const isKnownStatus = (status: string): status is RequestStatus => Object.hasOwn(STATUSES, status);
-
-/** Statuses missing from STATUSES (the city adds new ones) show as-is, in gray. */
-const statusInfo = (status: string) =>
-  isKnownStatus(status) ? STATUSES[status] : { label: status, tone: "ended" as const };
-
-const statusPill = (status: string) => {
-  const { label, tone } = statusInfo(status);
-  return element("span", `justify-self-start self-start wide:self-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${TONES[tone].pill}`, label);
-};
+import type { ServiceRequest } from "./types/serviceRequest";
 
 const opened = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -96,23 +64,8 @@ const row = ({ request, topic }: Entry, now: string) => {
   );
 
   const item = element("li", ROW);
-  item.append(statusPill(request.status), title, details);
+  item.append(statusPill(request.status, "justify-self-start self-start whitespace-nowrap wide:self-center"), title, details);
   return item;
-};
-
-const CONTROL = "rounded-md border border-line bg-panel px-2 py-1.5 text-sm";
-
-const select = (label: string, options: [value: string, text: string][]) => {
-  const el = element("select", CONTROL);
-  el.setAttribute("aria-label", label);
-  el.append(
-    ...options.map(([value, text]) => {
-      const option = element("option", "", text);
-      option.value = value;
-      return option;
-    }),
-  );
-  return el;
 };
 
 const whole = new Intl.NumberFormat();
@@ -131,10 +84,7 @@ export const renderRecentRequests = (el: HTMLElement, requests: ServiceRequest[]
   search.type = "search";
   search.placeholder = "Search ticket #, topic, description, address";
   search.setAttribute("aria-label", "Search requests");
-  const statusFilter = select("Status", [
-    ["", "All statuses"],
-    ...Object.entries(TONES).map(([tone, { label }]): [string, string] => [tone, label]),
-  ]);
+  const statusFilter = select("Status", STATUS_OPTIONS);
   const topicFilter = select("Topic", [["", "All topics"], ...TOPICS.map((t): [string, string] => [t, t])]);
   const controls = element("div", "mb-3 flex flex-wrap gap-2 px-4");
   controls.append(search, statusFilter, topicFilter);
@@ -158,7 +108,7 @@ export const renderRecentRequests = (el: HTMLElement, requests: ServiceRequest[]
     const query = search.value.trim().toLowerCase();
     const matches = entries.filter(
       ({ request, topic, searchText }) =>
-        (!statusFilter.value || statusInfo(request.status).tone === statusFilter.value) &&
+        matchesTone(request.status, statusFilter.value) &&
         (!topicFilter.value || topic === topicFilter.value) &&
         (!query || searchText.includes(query)),
     );

@@ -10,16 +10,19 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
     "lint": "eslint . && npm run typecheck",
     "lint:fix": "eslint . --fix",
-    "fetch-data": "bash scripts/fetch.sh"
+    "fetch-data": "bash scripts/fetch.sh",
+    "buffer-shape": "node --experimental-strip-types --no-warnings scripts/buffer-shape.ts"
   },
   "dependencies": {
     "d3-array": "^3.2.4",
     "d3-time": "^3.1.0",
-    "echarts": "^6.1.0"
+    "echarts": "^6.1.0",
+    "maplibre-gl": "^6.11.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@tailwindcss/vite": "^4.3.3",
+    "@turf/buffer": "^7.4.0",
     "@types/d3-array": "^3.2.2",
     "@types/d3-time": "^3.0.4",
     "@types/node": "^26.6.2",

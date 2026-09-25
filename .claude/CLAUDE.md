@@ -14,7 +14,7 @@ Data visualizations of Oakland 311 service requests.
 
 ## API Data files: do not read
 
-**Do not open, read, cat, grep, or otherwise load files in `data/api/.**` They may be very large
+**Do not open, read, cat, grep, or otherwise load files in `data/api/`.** They may be very large
 and will flood the context window. Everything you need about their structure is documented below.
 
 If you need to verify something about the data, write a small script that streams or samples
@@ -59,6 +59,10 @@ export interface ServiceRequest {
   status: RequestStatus;
   /** Who the request was referred to. Only present when status is "REFERRED". */
   referredto?: string;
+  /** Longitude, as a numeric string. May be missing. (SoQL: make_point(sry, srx)) */
+  srx?: string;
+  /** Latitude, as a numeric string. May be missing. */
+  sry?: string;
 }
 
 export type ServiceRequests = ServiceRequest[];

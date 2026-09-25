@@ -32,6 +32,10 @@ export interface ServiceRequest {
   status: string;
   /** Only present when status is "REFERRED". */
   referredto?: string;
+  /** Longitude of the request, as a numeric string (e.g. "-122.2587"). May be missing. */
+  srx?: string;
+  /** Latitude of the request, as a numeric string (e.g. "37.8094"). May be missing. */
+  sry?: string;
 }
 
 export type ServiceRequests = ServiceRequest[];

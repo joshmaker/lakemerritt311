@@ -186,3 +186,23 @@ export const newestFirst = (rows: ServiceRequests): ServiceRequests =>
   rows
     .filter((row) => isTimestamp(row.datetimeinit))
     .toSorted((a, b) => (a.datetimeinit < b.datetimeinit ? 1 : a.datetimeinit > b.datetimeinit ? -1 : 0));
+
+/** A request with a location, for the map. */
+export interface RequestPoint {
+  request: ServiceRequest;
+  topic: Topic;
+  lng: number;
+  lat: number;
+}
+
+/**
+ * Requests opened since `since` (a California timestamp) that have usable coordinates, newest
+ * first. srx is longitude and sry latitude; missing or blank ones are skipped.
+ */
+export const recentPoints = (rows: ServiceRequests, since: string): RequestPoint[] =>
+  newestFirst(rows).flatMap((request) => {
+    if (request.datetimeinit < since) return [];
+    const [lng, lat] = [Number(request.srx || NaN), Number(request.sry || NaN)];
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) return [];
+    return [{ request, topic: topicOf(request.description), lng, lat }];
+  });

@@ -4,7 +4,7 @@ import { DataZoomComponent, GridComponent, LegendComponent, TooltipComponent } f
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { ALL_OTHERS, type StackedCounts, type WeeklyCounts } from "./data";
-import { element } from "./dom";
+import { cssVar, element } from "./dom";
 import { isPartialWeek } from "./time";
 
 // LegendComponent stays registered even though the legend is hidden: the page's shared
@@ -12,7 +12,6 @@ import { isPartialWeek } from "./time";
 echarts.use([BarChart, DataZoomComponent, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
 
 // Colors come from the Tailwind theme in styles.css, so the palette lives in one place.
-const cssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const TEXT = cssVar("--color-ink");
 const MUTED = cssVar("--color-muted");
 const BORDER = cssVar("--color-line");

@@ -1,8 +1,9 @@
 import type { EChartsOption } from "echarts";
 import { renderChart, seriesColor, stackedBarOption, weeklyStackedOption } from "./chart";
 import { renderChartLegend } from "./chartLegend";
-import { loadRequests, monthlyCounts, newestFirst, recentActivity, topicSummaries, weeklyCounts } from "./data";
+import { ALL_OTHERS, loadRequests, monthlyCounts, newestFirst, recentActivity, topicSummaries, weeklyCounts } from "./data";
 import { renderIssuesResolved, renderTopReportedIssues } from "./issueTables";
+import { renderMapPanel } from "./mapPanel";
 import { renderRecentRequests } from "./recentRequests";
 import { renderStatTiles } from "./statTiles";
 import { californiaNow, monthsBefore } from "./time";
@@ -36,6 +37,10 @@ if (import.meta.hot) {
     lifetime.abort();
   });
 }
+
+// The map starts loading right away, in parallel with the 311 data; its dots are added once the
+// data is in (see below). If the map fails, the rest of the page still works.
+const mapPanel = renderMapPanel(getElement("map"), lifetime.signal);
 
 const statusEl = getElement("status");
 const show = (id: string, title: string, option: EChartsOption) =>
@@ -88,6 +93,13 @@ try {
       weeklyStackedOption(weeklyCounts(requests, now, "topic", topics), monthsBefore(now, WEEKLY_ZOOM_MONTHS)),
     ),
   ];
+  // Map dots use each topic's chart color; topics outside the charts' series share "All others".
+  const colorOf = (topic: string) => {
+    const index = topics.indexOf(topic === "Other" ? ALL_OTHERS : topic);
+    return index === -1 ? seriesColor(ALL_OTHERS, 0) : seriesColor(topics[index] ?? ALL_OTHERS, index);
+  };
+  mapPanel.showRequests(requests, now, colorOf);
+
   renderChartLegend(
     getElement("chart-legend"),
     topics.map((name, index) => ({ name, color: seriesColor(name, index) })),

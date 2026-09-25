@@ -9,7 +9,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "types": [
-      "vite/client"
+      "vite/client",
+      "geojson"
     ],
     "strict": true,
     "noUncheckedIndexedAccess": true,
