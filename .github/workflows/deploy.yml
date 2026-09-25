@@ -5,6 +5,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main] # merges to main
+  schedule:
+    # Daily, to refresh the data. Cron times are UTC: 13:17 is 6:17 am PDT / 5:17 am PST.
+    # Off the hour on purpose: GitHub delays or drops runs when many workflows start at :00.
+    - cron: "17 13 * * *"
   workflow_dispatch: # "Run workflow" button in the Actions tab, e.g. to refresh the data
 
 permissions:

@@ -21,6 +21,16 @@ const RECENT_PAGE_SIZE = 50;
 
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 const whole = new Intl.NumberFormat();
+/** e.g. "Sep 24, 2026, 6:17 AM PDT": California time, since the data is about Oakland. */
+const fetchedTime = new Intl.DateTimeFormat(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "America/Los_Angeles",
+  timeZoneName: "short",
+});
 
 const getElement = (id: string): HTMLElement => {
   const el = document.getElementById(id);
@@ -49,6 +59,11 @@ const show = (id: string, title: string, option: EChartsOption) =>
 try {
   const requests = await loadRequests(DATA_URL, lifetime.signal);
   statusEl.hidden = true;
+  if (__DATA_FETCHED_AT__) {
+    const asOf = getElement("data-as-of");
+    asOf.textContent = `Data as of ${fetchedTime.format(new Date(__DATA_FETCHED_AT__))}`;
+    asOf.hidden = false;
+  }
 
   const now = californiaNow();
   const recent = recentActivity(requests, now);
