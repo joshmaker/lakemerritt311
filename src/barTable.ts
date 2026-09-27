@@ -2,8 +2,8 @@ import { element } from "./dom";
 
 export interface BarTableRow {
   label: string;
-  /** Bar fill, from 0 to 1. */
-  share: number;
+  /** Bar fill, from 0 to 1, per segment (see `segments`); segments stack left to right. */
+  shares: number[];
   /** One entry per value column. */
   values: string[];
 }
@@ -18,19 +18,33 @@ export interface BarTable {
   valueHeaders: string[];
   rows: BarTableRow[];
   /**
+   * Names and colors (Tailwind background classes) of the bars' segments, in order. With more
+   * than one, a legend shows beside the title. Defaults to one unnamed blue segment.
+   */
+  segments?: { label: string; color: string }[];
+  /**
    * If set, the table starts collapsed: rows past this many hide, a fade covers its bottom,
    * and a "See all" pill on its bottom edge (shown below `lg`) expands it.
    */
   previewRows?: number;
 }
 
-/** A small bar filled to `share`. Hidden from screen readers: the value columns carry the numbers. */
-const bar = (share: number, className = "") => {
-  const track = element("div", `h-2 overflow-hidden rounded-full bg-series-1/20 ${className}`);
+const DEFAULT_SEGMENTS = [{ label: "", color: "bg-series-1" }];
+
+/**
+ * A small bar with one fill per segment, side by side. Hidden from screen readers: the value
+ * columns carry the numbers.
+ */
+const bar = (shares: number[], colors: string[], className = "") => {
+  const track = element("div", `flex h-2 overflow-hidden rounded-full bg-series-1/20 ${className}`);
   track.setAttribute("aria-hidden", "true");
-  const fill = element("div", "h-full rounded-full bg-series-1");
-  fill.style.width = `${String(share * 100)}%`;
-  track.append(fill);
+  track.append(
+    ...shares.map((share, index) => {
+      const fill = element("div", `h-full ${colors[index] ?? ""}`);
+      fill.style.width = `${String(share * 100)}%`;
+      return fill;
+    }),
+  );
   return track;
 };
 
@@ -42,10 +56,22 @@ const bar = (share: number, className = "") => {
  */
 export const renderBarTable = (
   el: HTMLElement,
-  { title, subtitle, labelHeader, valueHeaders, rows, previewRows }: BarTable,
+  { title, subtitle, labelHeader, valueHeaders, rows, segments = DEFAULT_SEGMENTS, previewRows }: BarTable,
 ): (() => void) => {
+  const colors = segments.map(({ color }) => color);
+  const note = element("p", "flex flex-wrap items-center justify-end gap-x-3 text-xs text-muted");
+  if (segments.length > 1) {
+    note.append(
+      ...segments.map(({ label, color }) => {
+        const key = element("span", "inline-flex items-center gap-1", label);
+        key.prepend(element("span", `inline-block size-2 rounded-full ${color}`));
+        return key;
+      }),
+    );
+  }
+  note.append(element("span", "", subtitle));
   const heading = element("div", "mb-2 flex items-baseline justify-between gap-3");
-  heading.append(element("h2", "text-lg font-semibold", title), element("p", "text-xs text-muted", subtitle));
+  heading.append(element("h2", "text-lg font-semibold whitespace-nowrap", title), note);
 
   const barHeader = element("th", "hidden sm:table-cell");
   barHeader.setAttribute("aria-hidden", "true");
@@ -60,12 +86,12 @@ export const renderBarTable = (
 
   const body = element("tbody");
   body.append(
-    ...rows.map(({ label, share, values }, index) => {
+    ...rows.map(({ label, shares, values }, index) => {
       const labelCell = element("th", "py-1 pr-2 text-left font-medium sm:pr-3 sm:whitespace-nowrap", label);
       labelCell.scope = "row";
-      labelCell.append(bar(share, "mt-1 sm:hidden"));
+      labelCell.append(bar(shares, colors, "mt-1 sm:hidden"));
       const barCell = element("td", "hidden w-full py-1 sm:table-cell");
-      barCell.append(bar(share));
+      barCell.append(bar(shares, colors));
 
       const row = element("tr", previewRows !== undefined && index >= previewRows ? "group-data-collapsed:hidden" : "");
       row.append(

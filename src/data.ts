@@ -129,8 +129,10 @@ export interface TopicSummary {
   topic: Topic;
   /** Requests opened since January 1. */
   openedYtd: YearOverYear;
-  /** How many of this year's opened requests are now CLOSED. */
+  /** How many of this year's opened requests are now CLOSED or GONE ON ARRIVAL. */
   resolvedYtd: number;
+  /** How many of this year's opened requests are now REFERRED to another agency. */
+  referredYtd: number;
 }
 
 /** Per-topic requests opened and resolved this year, with opened compared to the same dates last year. */
@@ -145,6 +147,7 @@ export const topicSummaries = (rows: ServiceRequests, now: string): TopicSummary
         topic,
         openedYtd: { current: 0, lastYear: 0 },
         resolvedYtd: 0,
+        referredYtd: 0,
       },
     ]),
   );
@@ -154,7 +157,8 @@ export const topicSummaries = (rows: ServiceRequests, now: string): TopicSummary
     if (!summary) continue;
     if (within(row.datetimeinit, ytd)) {
       summary.openedYtd.current++;
-      if (row.status === "CLOSED") summary.resolvedYtd++;
+      if (row.status === "CLOSED" || row.status === "GONE ON ARRIVAL") summary.resolvedYtd++;
+      else if (row.status === "REFERRED") summary.referredYtd++;
     }
     if (within(row.datetimeinit, ytdBefore)) summary.openedYtd.lastYear++;
   }

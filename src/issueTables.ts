@@ -5,8 +5,10 @@ const whole = new Intl.NumberFormat();
 const signed = new Intl.NumberFormat(undefined, { signDisplay: "exceptZero" });
 const percent = new Intl.NumberFormat(undefined, { style: "percent" });
 
-const resolvedShare = ({ openedYtd, resolvedYtd }: TopicSummary) =>
-  openedYtd.current > 0 ? resolvedYtd / openedYtd.current : 0;
+/** Resolved (including gone on arrival) and referred, as shares of this year's requests. */
+const handledShares = ({ openedYtd, resolvedYtd, referredYtd }: TopicSummary) =>
+  openedYtd.current > 0 ? [resolvedYtd / openedYtd.current, referredYtd / openedYtd.current] : [0, 0];
+const handledShare = (summary: TopicSummary) => handledShares(summary).reduce((a, b) => a + b);
 
 /**
  * Topics by requests opened this year, with each one's share of all requests and the change from
@@ -26,7 +28,7 @@ export const renderTopReportedIssues = (el: HTMLElement, summaries: TopicSummary
         const share = total > 0 ? current / total : 0;
         return {
           label: topic,
-          share,
+          shares: [share],
           values: [whole.format(current), percent.format(share), signed.format(current - lastYear)],
         };
       }),
@@ -34,8 +36,9 @@ export const renderTopReportedIssues = (el: HTMLElement, summaries: TopicSummary
 };
 
 /**
- * Topics by the share of this year's requests that are now resolved (status CLOSED). Returns a
- * function that expands the table if it started collapsed.
+ * Topics by the share of this year's requests that are now resolved (CLOSED or GONE ON ARRIVAL)
+ * or referred to another agency, shown as two bar colors. Returns a function that expands the
+ * table if it started collapsed.
  */
 export const renderIssuesResolved = (el: HTMLElement, summaries: TopicSummary[], year: number, previewRows?: number): (() => void) =>
   renderBarTable(el, {
@@ -44,14 +47,18 @@ export const renderIssuesResolved = (el: HTMLElement, summaries: TopicSummary[],
     subtitle: `Of requests opened in ${String(year)}`,
     labelHeader: "Issue",
     valueHeaders: ["Resolved", "%"],
+    segments: [
+      { label: "Resolved", color: "bg-series-1" },
+      { label: "Referred", color: "bg-series-3" },
+    ],
     rows: summaries
-      .toSorted((a, b) => resolvedShare(b) - resolvedShare(a) || b.openedYtd.current - a.openedYtd.current)
+      .toSorted((a, b) => handledShare(b) - handledShare(a) || b.openedYtd.current - a.openedYtd.current)
       .map((summary) => ({
         label: summary.topic,
-        share: resolvedShare(summary),
+        shares: handledShares(summary),
         values: [
-          `${whole.format(summary.resolvedYtd)} of ${whole.format(summary.openedYtd.current)}`,
-          summary.openedYtd.current > 0 ? percent.format(resolvedShare(summary)) : "–",
+          `${whole.format(summary.resolvedYtd + summary.referredYtd)} of ${whole.format(summary.openedYtd.current)}`,
+          summary.openedYtd.current > 0 ? percent.format(handledShare(summary)) : "–",
         ],
       })),
   });
