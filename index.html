@@ -15,12 +15,14 @@
     <h1 class="text-xl font-semibold">Lake Merritt 311 Requests</h1>
     <p class="text-sm text-muted">Oakland 311 service requests around Lake Merritt</p>
   </div>
-  <!-- When the data was downloaded; filled in by main.ts once the data loads. -->
+  <!-- When the city last updated the data; filled in by main.ts once the data loads. -->
   <p id="data-as-of" class="text-xs text-muted" hidden></p>
 </header>
 
 <main class="space-y-6">
   <p id="status" role="status" class="text-sm text-muted">Loading data&hellip;</p>
+  <!-- Shown by main.ts when the city's data is more than a day old. -->
+  <p id="stale-data" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" hidden></p>
   <!-- Widgets stay hidden until main.ts has data to render into them. -->
   <dl id="stats" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" hidden></dl>
   <!-- The two issue tables. Each starts collapsed with its own "See all" (see barTable.ts).

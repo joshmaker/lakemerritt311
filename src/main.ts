@@ -2,6 +2,7 @@ import type { EChartsOption } from "echarts";
 import { renderChart, seriesColor, stackedBarOption, weeklyStackedOption } from "./chart";
 import { renderChartLegend } from "./chartLegend";
 import { ALL_OTHERS, loadRequests, monthlyCounts, newestFirst, recentActivity, topicSummaries, weeklyCounts } from "./data";
+import { element } from "./dom";
 import { renderIssuesResolved } from "./issueTables";
 import { renderMapPanel } from "./mapPanel";
 import { renderRecentRequests } from "./recentRequests";
@@ -17,13 +18,16 @@ const ISSUES_PREVIEW_ROWS = 6;
 /** How much of each chart shows before zooming out. */
 const MONTHLY_ZOOM_MONTHS = 24;
 const WEEKLY_ZOOM_MONTHS = 5;
+/** Warn that the data is stale when the city's last update is older than this. */
+const STALE_AFTER_MS = 30 * 60 * 60 * 1000;
 /** Recent Requests shows this many at a time. */
 const RECENT_PAGE_SIZE = 50;
 
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 const whole = new Intl.NumberFormat();
 /** e.g. "Sep 24, 2026, 6:17 AM PDT": California time, since the data is about Oakland. */
-const fetchedTime = new Intl.DateTimeFormat(undefined, {
+const updatedDay = new Intl.DateTimeFormat(undefined, { dateStyle: "long", timeZone: "America/Los_Angeles" });
+const updatedTime = new Intl.DateTimeFormat(undefined, {
   year: "numeric",
   month: "short",
   day: "numeric",
@@ -60,10 +64,20 @@ const show = (id: string, title: string, option: EChartsOption) =>
 try {
   const requests = await loadRequests(DATA_URL, lifetime.signal);
   statusEl.hidden = true;
-  if (__DATA_FETCHED_AT__) {
+  if (__DATA_UPDATED_AT__) {
     const asOf = getElement("data-as-of");
-    asOf.textContent = `Data as of ${fetchedTime.format(new Date(__DATA_FETCHED_AT__))}`;
+    asOf.textContent = `Data as of ${updatedTime.format(new Date(__DATA_UPDATED_AT__))}`;
     asOf.hidden = false;
+    // Checked in the viewer's browser, since the page can stay deployed long after its build.
+    const updated = new Date(__DATA_UPDATED_AT__);
+    if (Date.now() - updated.getTime() > STALE_AFTER_MS) {
+      const stale = getElement("stale-data");
+      stale.replaceChildren(
+        element("strong", "font-semibold", `Oakland's 311 data feed hasn't been updated since ${updatedDay.format(updated)}.`),
+        " Updates will appear here once the city uploads fresh data.",
+      );
+      stale.hidden = false;
+    }
   }
 
   const now = californiaNow();

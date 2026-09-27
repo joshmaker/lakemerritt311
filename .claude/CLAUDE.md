@@ -20,6 +20,9 @@ and will flood the context window. Everything you need about their structure is 
 If you need to verify something about the data, write a small script that streams or samples
 the file and prints a summary (counts, distinct values, min/max dates), then ask before running it.
 
+`data/api/311-meta.json` is the dataset's Socrata metadata (`/api/views/quth-gb8e.json`); the
+build reads its `rowsUpdatedAt` (Unix seconds: when the city last uploaded data).
+
 ## Schema: `data/api/311.json`
 
 A JSON array of Oakland 311 service request records (OAK 311). All values are strings in the JSON.

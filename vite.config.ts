@@ -5,11 +5,21 @@ import { defineConfig, type Plugin } from "vite";
 /** Downloaded by `npm run fetch-data`; the app fetches it at this same relative path (see main.ts). */
 const DATA_FILE = "data/api/311.json";
 
+/** The dataset's metadata, also downloaded by `npm run fetch-data`. */
+const META_FILE = "data/api/311-meta.json";
+
 /**
- * When the data was downloaded, as an ISO timestamp: the file's modified time, since fetch.sh
- * writes it fresh. Empty if it hasn't been downloaded. Read once, when the build or dev server starts.
+ * When the city last uploaded new data, as an ISO timestamp: the metadata's `rowsUpdatedAt`
+ * (Unix seconds). Falls back to when the data was downloaded (the data file's modified time), then
+ * to "". Read once, when the build or dev server starts.
  */
-const dataFetchedAt = (): string => {
+const dataUpdatedAt = (): string => {
+  try {
+    const { rowsUpdatedAt } = JSON.parse(readFileSync(META_FILE, "utf8")) as { rowsUpdatedAt?: unknown };
+    if (typeof rowsUpdatedAt === "number") return new Date(rowsUpdatedAt * 1000).toISOString();
+  } catch {
+    // Not downloaded yet; fall through.
+  }
   try {
     return statSync(DATA_FILE).mtime.toISOString();
   } catch {
@@ -37,7 +47,7 @@ export default defineConfig({
   base: "./",
   plugins: [tailwindcss(), includeData()],
   // Declared in src/types/globals.d.ts.
-  define: { __DATA_FETCHED_AT__: JSON.stringify(dataFetchedAt()) },
+  define: { __DATA_UPDATED_AT__: JSON.stringify(dataUpdatedAt()) },
   server: {
     open: true,
     // data/ can be very large; don't watch it for reloads.
