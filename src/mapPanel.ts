@@ -7,7 +7,7 @@ import { TOPICS } from "./topics";
 import type { ServiceRequests } from "./types/serviceRequest";
 
 /** Choices for the date filter, in days. */
-const DAY_OPTIONS = [7, 15, 30, 60];
+const DAY_OPTIONS = [7, 15, 30, 60, 90, 120];
 const DEFAULT_DAYS = 30;
 
 const whole = new Intl.NumberFormat();
