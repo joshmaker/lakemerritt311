@@ -4,13 +4,18 @@ import { daysBetween, isTimestamp } from "./time";
 import { type Topic, TOPICS, topicOf } from "./topics";
 import type { ServiceRequest } from "./types/serviceRequest";
 
-const opened = new Intl.DateTimeFormat(undefined, {
+// Timestamps are California wall-clock time; formatting them as UTC shows them unchanged.
+const openedThisYear = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
   hour: "numeric",
   minute: "2-digit",
-  timeZone: "UTC", // timestamps are California wall-clock time; show them unchanged
+  timeZone: "UTC",
 });
+/** Earlier years show the year instead of the time, so the column stays narrow. */
+const openedEarlier = new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+const openedDate = (timestamp: string, now: string) =>
+  (timestamp.slice(0, 4) === now.slice(0, 4) ? openedThisYear : openedEarlier).format(Date.parse(`${timestamp}Z`));
 const days = (n: number) => `${String(n)} ${n === 1 ? "day" : "days"}`;
 
 /** Wide screens: one line per request with these columns. The header and every row share them. */
@@ -58,7 +63,7 @@ const row = ({ request, topic }: Entry, now: string) => {
   details.append(
     truncated("", address),
     element("span", "wide:hidden", " • "),
-    element("span", "", opened.format(Date.parse(`${request.datetimeinit}Z`))),
+    element("span", "", openedDate(request.datetimeinit, now)),
     element("span", "wide:hidden", " • "),
     element("span", "", duration),
   );
