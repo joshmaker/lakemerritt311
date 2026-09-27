@@ -88,7 +88,7 @@ const baseOption = (periods: string[], yAxisName: string, zoomStart = 0): EChart
 });
 
 const whole = new Intl.NumberFormat();
-const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${String(c.charCodeAt(0))};`);
+export const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${String(c.charCodeAt(0))};`);
 
 interface StackedBarChart {
   /** Axis label for each bar. */

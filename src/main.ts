@@ -2,10 +2,11 @@ import type { EChartsOption } from "echarts";
 import { renderChart, seriesColor, stackedBarOption, weeklyStackedOption } from "./chart";
 import { renderChartLegend } from "./chartLegend";
 import { ALL_OTHERS, loadRequests, monthlyCounts, newestFirst, recentActivity, topicSummaries, weeklyCounts } from "./data";
-import { renderIssuesResolved, renderTopReportedIssues } from "./issueTables";
+import { renderIssuesResolved } from "./issueTables";
 import { renderMapPanel } from "./mapPanel";
 import { renderRecentRequests } from "./recentRequests";
 import { renderStatTiles } from "./statTiles";
+import { renderTopReportedIssues } from "./topReported";
 import { californiaNow, monthsBefore } from "./time";
 
 const DATA_URL = "data/api/311.json";
@@ -74,22 +75,26 @@ try {
     { label: "311 Requests Closed", value: whole.format(recent.closed7), caption: "Total last 7 days" },
   ]);
 
-  const summaries = topicSummaries(requests, now);
-  const year = Number(now.slice(0, 4));
-  const expanders = [
-    renderTopReportedIssues(getElement("top-issues"), summaries, year, ISSUES_PREVIEW_ROWS),
-    renderIssuesResolved(getElement("issues-resolved"), summaries, year, ISSUES_PREVIEW_ROWS),
-  ];
-  // Side by side, one shared button expands both tables (it hides itself once neither is collapsed).
-  const expandBoth = getElement("issues-expand");
-  expandBoth.textContent = `See all ${String(summaries.length)} issues`;
-  expandBoth.addEventListener("click", () => {
-    for (const expand of expanders) expand();
-  });
-  getElement("issues").hidden = false;
-
+  // Each topic keeps one color everywhere: its series color in the charts, used by the donut and map too.
   const monthly = monthlyCounts(requests, "topic", TOP_N);
   const topics = monthly.series.map(({ name }) => name);
+  // Topics outside the charts' series share "All others".
+  const colorOf = (topic: string) => {
+    const index = topics.indexOf(topic === "Other" ? ALL_OTHERS : topic);
+    return index === -1 ? seriesColor(ALL_OTHERS, 0) : seriesColor(topics[index] ?? ALL_OTHERS, index);
+  };
+
+  const summaries = topicSummaries(requests, now);
+  const year = Number(now.slice(0, 4));
+  getElement("issues").hidden = false; // the tray; shown first so the donut can measure its card
+  // Issues Resolved first: side by side, the donut's card takes its height from that table.
+  const expandResolved = renderIssuesResolved(getElement("issues-resolved"), summaries, year, ISSUES_PREVIEW_ROWS);
+  renderTopReportedIssues(getElement("top-issues"), summaries, year, colorOf, ISSUES_PREVIEW_ROWS, lifetime.signal);
+  // Side by side, the tray's button expands Issues Resolved, and with it the donut's legend (it
+  // hides itself once the table is expanded). Stacked, the table has its own button.
+  const expandBoth = getElement("issues-expand");
+  expandBoth.textContent = `See all ${String(summaries.length)} issues`;
+  expandBoth.addEventListener("click", expandResolved);
   getElement("charts").hidden = false; // the tray holding both charts and their legend
   const charts = [
     show(
@@ -108,11 +113,6 @@ try {
       weeklyStackedOption(weeklyCounts(requests, now, "topic", topics), monthsBefore(now, WEEKLY_ZOOM_MONTHS)),
     ),
   ];
-  // Map dots use each topic's chart color; topics outside the charts' series share "All others".
-  const colorOf = (topic: string) => {
-    const index = topics.indexOf(topic === "Other" ? ALL_OTHERS : topic);
-    return index === -1 ? seriesColor(ALL_OTHERS, 0) : seriesColor(topics[index] ?? ALL_OTHERS, index);
-  };
   mapPanel.showRequests(requests, now, colorOf);
 
   renderChartLegend(
