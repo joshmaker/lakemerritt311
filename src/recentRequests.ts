@@ -1,6 +1,6 @@
 import { cardHeader, CONTROL, element, select } from "./dom";
-import { matchesTone, STATUS_OPTIONS, statusPill } from "./status";
-import { daysBetween, isTimestamp } from "./time";
+import { matchesTone, STATUS_OPTIONS, statusInfo, statusPill } from "./status";
+import { daysBetween, hoursBetween, isTimestamp } from "./time";
 import { type Topic, TOPICS, topicOf } from "./topics";
 import type { ServiceRequest } from "./types/serviceRequest";
 
@@ -16,7 +16,15 @@ const openedThisYear = new Intl.DateTimeFormat(undefined, {
 const openedEarlier = new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 const openedDate = (timestamp: string, now: string) =>
   (timestamp.slice(0, 4) === now.slice(0, 4) ? openedThisYear : openedEarlier).format(Date.parse(`${timestamp}Z`));
-const days = (n: number) => `${String(n)} ${n === 1 ? "day" : "days"}`;
+const plural = (n: number, unit: string) => `${String(n)} ${unit}${n === 1 ? "" : "s"}`;
+
+/** How long from `from` to `to`: whole days, or hours under a day ("less than 1 hour" under an hour). */
+const elapsed = (from: string, to: string) => {
+  const days = daysBetween(from, to);
+  if (days >= 1) return plural(days, "day");
+  const hours = hoursBetween(from, to);
+  return hours >= 1 ? plural(hours, "hour") : "less than 1 hour";
+};
 
 /** Wide screens: one line per request with these columns. The header and every row share them. */
 // Description and Address share the leftover width; Address keeps at least 13rem so it truncates less.
@@ -42,9 +50,17 @@ interface Entry {
 
 const row = ({ request, topic }: Entry, now: string) => {
   const closed = isTimestamp(request.datetimeclosed) ? request.datetimeclosed : undefined;
+  // Requests that ended without a fix but have no close time: their duration is unknown, not
+  // still running.
+  const unknown = !closed && statusInfo(request.status).tone === "ended";
   const duration = closed
-    ? `closed in ${days(daysBetween(request.datetimeinit, closed))}`
-    : `open ${days(daysBetween(request.datetimeinit, now))}`;
+    ? `closed in ${elapsed(request.datetimeinit, closed)}`
+    : unknown
+      ? "N/A"
+      : `open ${elapsed(request.datetimeinit, now)}`;
+  const durationCell = element("span", "", duration);
+  // Stacked, "N/A" needs a label; on wide screens the Duration column header gives it.
+  if (unknown) durationCell.prepend(element("span", "wide:hidden", "Duration "));
   const address = request.probaddress && request.probaddress !== "ZZ" ? request.probaddress : "No address";
   // Skip the description when it just repeats the topic (e.g. "Homeless Encampment").
   const description = request.description && request.description !== topic ? request.description : "";
@@ -65,7 +81,7 @@ const row = ({ request, topic }: Entry, now: string) => {
     element("span", "wide:hidden", " • "),
     element("span", "", openedDate(request.datetimeinit, now)),
     element("span", "wide:hidden", " • "),
-    element("span", "", duration),
+    durationCell,
   );
 
   const item = element("li", ROW);

@@ -84,6 +84,10 @@ export const isPartialWeek = ({ key, start, end }: Week): boolean =>
 export const daysBetween = (from: string, to: string): number =>
   Math.floor((Date.parse(`${to}Z`) - Date.parse(`${from}Z`)) / MS_PER_DAY);
 
+/** Whole hours from `from` to `to`, reading both as UTC (see the note at the top). */
+export const hoursBetween = (from: string, to: string): number =>
+  Math.floor((Date.parse(`${to}Z`) - Date.parse(`${from}Z`)) / (MS_PER_DAY / 24));
+
 /** The ISO date `months` calendar months before `timestamp`'s date. */
 export const monthsBefore = (timestamp: string, months: number): string =>
   isoDate(utcMonth.offset(dateOf(timestamp), -months));
