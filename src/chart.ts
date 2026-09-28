@@ -17,6 +17,8 @@ const MUTED = cssVar("--color-muted");
 const BORDER = cssVar("--color-line");
 const PANEL = cssVar("--color-panel");
 const OTHERS_COLOR = cssVar("--color-series-others");
+/** The page's text font. ECharts draws on canvas and in its own tooltips, so it needs telling. */
+export const FONT = cssVar("--font-sans");
 
 /** --color-series-1, --color-series-2, … read in order until one is missing. */
 const SERIES_COLORS: string[] = [];
@@ -49,7 +51,7 @@ const zoomRange = (periods: string[], zoomStart: number) => ({
 const baseOption = (periods: string[], yAxisName: string, zoomStart = 0): EChartsOption => ({
   backgroundColor: "transparent",
   color: SERIES_COLORS,
-  textStyle: { color: TEXT },
+  textStyle: { color: TEXT, fontFamily: FONT },
   legend: { show: false },
   grid: { left: 48, right: 16, top: 32, bottom: 64 },
   xAxis: {
@@ -109,6 +111,7 @@ export const stackedBarOption = ({
 }: StackedBarChart): EChartsOption => ({
   ...baseOption(labels, "Requests", zoomStart),
   tooltip: {
+    textStyle: { fontFamily: FONT },
     trigger: "axis",
     axisPointer: { type: "shadow" },
     formatter: (params) => {

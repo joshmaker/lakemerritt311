@@ -3,7 +3,7 @@ import { PieChart } from "echarts/charts";
 import { LegendComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
-import { escapeHtml } from "./chart";
+import { escapeHtml, FONT } from "./chart";
 import type { TopicSummary } from "./data";
 import { cssVar, element } from "./dom";
 
@@ -122,6 +122,7 @@ export const renderTopReportedIssues = (
   const option: EChartsOption = {
     legend: { show: false },
     tooltip: {
+      textStyle: { fontFamily: FONT },
       trigger: "item",
       formatter: (params) => {
         const row = rows[(Array.isArray(params) ? params[0] : params)?.dataIndex ?? -1];

@@ -13,7 +13,7 @@ export const renderStatTiles = (el: HTMLElement, tiles: StatTile[]): void => {
       const tile = element("div", "panel p-4");
       tile.append(
         element("dt", "text-sm text-muted", label),
-        element("dd", "mt-1 text-3xl font-semibold", value),
+        element("dd", "mt-1 font-display text-3xl font-semibold lining-nums", value),
         element("dd", "mt-1 text-sm text-muted", caption),
       );
       return tile;

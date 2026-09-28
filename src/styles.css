@@ -39,6 +39,20 @@
   --color-series-12: #81ecec;
   /* The "All others" series: a neutral gray so it recedes behind real categories. */
   --color-series-others: #95a5a6;
+
+  /* Fonts, loaded from Google Fonts in index.html. Inter for text (clear at small sizes, with
+     tabular digits for the tables); Raleway for headings and big numbers (`font-display`). */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Raleway", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    /* Raleway defaults to old-style digits (the "311" dips); use full-height ones. */
+    font-variant-numeric: lining-nums;
+  }
 }
 
 /* A white card with a thin border; the base for every widget. */

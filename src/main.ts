@@ -62,7 +62,12 @@ const show = (id: string, title: string, option: EChartsOption) =>
   renderChart(getElement(id), title, option, lifetime.signal);
 
 try {
-  const requests = await loadRequests(DATA_URL, lifetime.signal);
+  // Charts draw text on canvas once, so wait for the page font too (it loads alongside the data).
+  // If the font can't load, carry on with the fallback.
+  const [requests] = await Promise.all([
+    loadRequests(DATA_URL, lifetime.signal),
+    document.fonts.load("1em Inter").catch(() => []),
+  ]);
   statusEl.hidden = true;
   if (__DATA_UPDATED_AT__) {
     const asOf = getElement("data-as-of");
