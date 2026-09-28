@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* Fonts, bundled with the site rather than loaded from Google Fonts (see --font-sans below). */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/raleway";
 
 /* data/ holds large JSON exports; don't scan it for class names. */
 @source not "../data";
@@ -39,10 +42,10 @@
   /* The "All others" series: a neutral gray so it recedes behind real categories. */
   --color-series-others: #95a5a6;
 
-  /* Fonts, loaded from Google Fonts in index.html. Inter for text (clear at small sizes, with
-     tabular digits for the tables); Raleway for headings and big numbers (`font-display`). */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Raleway", ui-sans-serif, system-ui, sans-serif;
+  /* Fonts (imported above). Inter for text (clear at small sizes, with tabular digits for the
+     tables); Raleway for headings and big numbers (`font-display`). */
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Raleway Variable", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {

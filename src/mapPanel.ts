@@ -6,6 +6,23 @@ import { daysBefore } from "./time";
 import { TOPICS } from "./topics";
 import type { ServiceRequests } from "./types/serviceRequest";
 
+/** Resolves once `el` is within a screen's height of the viewport. Never resolves if `signal` aborts first. */
+const nearViewport = (el: Element, signal: AbortSignal) =>
+  new Promise<void>((resolve) => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some(({ isIntersecting }) => isIntersecting)) return;
+        observer.disconnect();
+        resolve();
+      },
+      { rootMargin: "100% 0px" },
+    );
+    observer.observe(el);
+    signal.addEventListener("abort", () => {
+      observer.disconnect();
+    }, { once: true });
+  });
+
 /** Choices for the date filter, in days. */
 const DAY_OPTIONS = [7, 15, 30, 60, 90, 120];
 const DEFAULT_DAYS = 30;
@@ -40,7 +57,7 @@ export interface MapPanel {
 /**
  * Fills the panel `el` with the map, filters for status, topic, and date, and a table of the
  * requests in whichever bubble or dot was clicked. Shows `el` right away; the map library loads
- * separately (it's large) and the panel hides again if it fails.
+ * separately (it's large), once the map nears the viewport, and the panel hides again if it fails.
  */
 export const renderMapPanel = (el: HTMLElement, signal: AbortSignal): MapPanel => {
   const { header: heading, subtitle: count } = cardHeader("Lake Merritt", "Loading requests…");
@@ -56,7 +73,8 @@ export const renderMapPanel = (el: HTMLElement, signal: AbortSignal): MapPanel =
   const filters = element("div", "grid grid-cols-1 gap-2 sm:grid-cols-3 lg:col-start-2 lg:row-start-1 lg:grid-cols-1");
   filters.append(statusFilter, topicFilter, daysFilter);
 
-  const container = element("div", "h-96 overflow-hidden rounded lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:h-full");
+  // A placeholder (the `skeleton` class) until the map library arrives.
+  const container = element("div", "skeleton h-96 overflow-hidden rounded lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:h-full");
 
   // The table of picked requests. Beside the map on lg+, it fills the height the filters leave.
   const pickedTitle = element("p", "text-sm font-semibold");
@@ -102,8 +120,14 @@ export const renderMapPanel = (el: HTMLElement, signal: AbortSignal): MapPanel =
     pick([]);
   });
 
-  const mapReady: Promise<MapHandle | undefined> = import("./map")
-    .then(({ renderMap }) => renderMap(container, pick, signal))
+  // The map library is the page's biggest download, so fetch it only once the map is about to
+  // scroll into view (right away on wide screens; far down the page on phones).
+  const mapReady: Promise<MapHandle | undefined> = nearViewport(container, signal)
+    .then(() => import("./map"))
+    .then(({ renderMap }) => {
+      container.classList.remove("skeleton");
+      return renderMap(container, pick, signal);
+    })
     .catch((err: unknown) => {
       console.error("Map failed to load", err);
       el.hidden = true;

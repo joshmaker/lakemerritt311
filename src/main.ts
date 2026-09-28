@@ -9,8 +9,10 @@ import { renderRecentRequests } from "./recentRequests";
 import { renderStatTiles } from "./statTiles";
 import { renderTopReportedIssues } from "./topReported";
 import { californiaNow, californiaTime, monthsBefore } from "./time";
+// Importing the URL has Vite copy the data into builds under a content-hashed name (so browsers
+// can cache it), matching the preload link in index.html. Run `npm run fetch-data` first.
+import DATA_URL from "../data/api/311.json?url";
 
-const DATA_URL = "data/api/311.json";
 /** Values past the top N of a field are summed into one "All others" series. */
 const TOP_N = 12;
 /** Each issue table shows this many rows until "See all" is clicked. */
@@ -75,7 +77,7 @@ try {
   // If the font can't load, carry on with the fallback.
   const [requests] = await Promise.all([
     loadRequests(DATA_URL, lifetime.signal),
-    document.fonts.load("1em Inter").catch(() => []),
+    document.fonts.load('1em "Inter Variable"').catch(() => []),
   ]);
   statusEl.hidden = true;
   // When the city last uploaded data. Staleness is checked in the viewer's browser, since the
