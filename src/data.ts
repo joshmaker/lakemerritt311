@@ -96,26 +96,40 @@ type Range = readonly [start: string, end: string];
 const within = (timestamp: string | undefined, [start, end]: Range) =>
   isTimestamp(timestamp) && timestamp >= start && timestamp <= end;
 
+/** A count over a rolling window, the same-length window just before it, and the same dates a year earlier. */
+export interface WindowCount {
+  current: number;
+  previous: number;
+  lastYear: number;
+}
+
 export interface RecentActivity {
   /** Requests opened in the last 30 days. */
-  opened30: number;
+  opened30: WindowCount;
   /** Requests opened in the last 7 days. */
-  opened7: number;
+  opened7: WindowCount;
   /** CLOSED requests closed in the last 7 days. */
-  closed7: number;
+  closed7: WindowCount;
 }
 
 /**
- * Request counts over rolling windows ending at `now` (a California timestamp).
+ * Request counts over rolling windows ending at `end` (a California timestamp).
  * "Closed" counts only CLOSED requests, matching the resolution chart.
  */
-export const recentActivity = (rows: ServiceRequests, now: string): RecentActivity => {
-  const last30: Range = [daysBefore(now, 30), now];
-  const last7: Range = [daysBefore(now, 7), now];
+export const recentActivity = (rows: ServiceRequests, end: string): RecentActivity => {
+  const count = (days: number, timestampOf: (row: ServiceRequest) => string | undefined): WindowCount => {
+    const start = daysBefore(end, days);
+    const tally = (range: Range) => rows.filter((row) => within(timestampOf(row), range)).length;
+    return {
+      current: tally([start, end]),
+      previous: tally([daysBefore(end, 2 * days), start]),
+      lastYear: tally([yearsBefore(start, 1), yearsBefore(end, 1)]),
+    };
+  };
   return {
-    opened30: rows.filter((row) => within(row.datetimeinit, last30)).length,
-    opened7: rows.filter((row) => within(row.datetimeinit, last7)).length,
-    closed7: rows.filter((row) => row.status === "CLOSED" && within(row.datetimeclosed, last7)).length,
+    opened30: count(30, (row) => row.datetimeinit),
+    opened7: count(7, (row) => row.datetimeinit),
+    closed7: count(7, (row) => (row.status === "CLOSED" ? row.datetimeclosed : undefined)),
   };
 };
 

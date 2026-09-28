@@ -8,7 +8,7 @@ import { renderMapPanel } from "./mapPanel";
 import { renderRecentRequests } from "./recentRequests";
 import { renderStatTiles } from "./statTiles";
 import { renderTopReportedIssues } from "./topReported";
-import { californiaNow, monthsBefore } from "./time";
+import { californiaNow, californiaTime, monthsBefore } from "./time";
 
 const DATA_URL = "data/api/311.json";
 /** Values past the top N of a field are summed into one "All others" series. */
@@ -26,6 +26,15 @@ const RECENT_PAGE_SIZE = 50;
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 const whole = new Intl.NumberFormat();
 /** e.g. "Sep 24, 2026, 6:17 AM PDT": California time, since the data is about Oakland. */
+const shortDay = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
+const percentChange = new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 0 });
+/** e.g. "▲ 12% vs prior 7 days"; nothing when there's no earlier count to compare with. */
+const change = (current: number, earlier: number, versus: string) => {
+  if (earlier === 0) return undefined;
+  const ratio = (current - earlier) / earlier;
+  if (Math.round(ratio * 100) === 0) return `No change vs ${versus}`;
+  return `${ratio > 0 ? "▲" : "▼"} ${percentChange.format(Math.abs(ratio))} vs ${versus}`;
+};
 const updatedDay = new Intl.DateTimeFormat(undefined, { dateStyle: "long", timeZone: "America/Los_Angeles" });
 const updatedTime = new Intl.DateTimeFormat(undefined, {
   year: "numeric",
@@ -69,12 +78,13 @@ try {
     document.fonts.load("1em Inter").catch(() => []),
   ]);
   statusEl.hidden = true;
-  if (__DATA_UPDATED_AT__) {
+  // When the city last uploaded data. Staleness is checked in the viewer's browser, since the
+  // page can stay deployed long after its build.
+  const updated = __DATA_UPDATED_AT__ ? new Date(__DATA_UPDATED_AT__) : undefined;
+  const isStale = updated !== undefined && Date.now() - updated.getTime() > STALE_AFTER_MS;
+  if (updated) {
     const asOf = getElement("data-as-of");
-    asOf.textContent = `Data as of ${updatedTime.format(new Date(__DATA_UPDATED_AT__))}`;
-    // Checked in the viewer's browser, since the page can stay deployed long after its build.
-    const updated = new Date(__DATA_UPDATED_AT__);
-    const isStale = Date.now() - updated.getTime() > STALE_AFTER_MS;
+    asOf.textContent = `Data as of ${updatedTime.format(updated)}`;
     asOf.hidden = isStale; // the warning gives the same date
     if (isStale) {
       const stale = getElement("stale-data");
@@ -87,12 +97,36 @@ try {
   }
 
   const now = californiaNow();
-  const recent = recentActivity(requests, now);
+  // The tiles' windows end now, or at the city's last upload while the feed is stale, so days
+  // with no data yet don't read as quiet days.
+  const recent = recentActivity(requests, isStale ? californiaTime(updated) : now);
+  const period = (days: number) =>
+    isStale ? `${String(days)} days to ${shortDay.format(updated)}` : `Last ${String(days)} days`;
   renderStatTiles(getElement("stats"), [
-    { label: "311 Requests / Day", value: oneDecimal.format(recent.opened30 / 30), caption: "Average last 30 days" },
-    { label: "311 Request Count", value: whole.format(recent.opened30), caption: "Total last 30 days" },
-    { label: "311 Requests Opened", value: whole.format(recent.opened7), caption: "Total last 7 days" },
-    { label: "311 Requests Closed", value: whole.format(recent.closed7), caption: "Total last 7 days" },
+    {
+      label: "Requests / Day",
+      value: oneDecimal.format(recent.opened30.current / 30),
+      caption: `Average, ${period(30).replace(/^Last/, "last")}`,
+      change: change(recent.opened30.current, recent.opened30.lastYear, "same days last year"),
+    },
+    {
+      label: "Requests",
+      value: whole.format(recent.opened30.current),
+      caption: period(30),
+      change: change(recent.opened30.current, recent.opened30.previous, "prior 30 days"),
+    },
+    {
+      label: "Opened",
+      value: whole.format(recent.opened7.current),
+      caption: period(7),
+      change: change(recent.opened7.current, recent.opened7.previous, "prior 7 days"),
+    },
+    {
+      label: "Closed",
+      value: whole.format(recent.closed7.current),
+      caption: period(7),
+      change: change(recent.closed7.current, recent.closed7.previous, "prior 7 days"),
+    },
   ]);
 
   // Each topic keeps one color everywhere: its series color in the charts, used by the donut and map too.

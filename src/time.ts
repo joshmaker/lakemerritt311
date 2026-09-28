@@ -28,12 +28,15 @@ export const monthsSpanning = (months: Iterable<string>): string[] => {
 };
 
 /**
- * The current time in California, in the dataset's format without milliseconds
+ * `date` as California wall-clock time, in the dataset's format without milliseconds
  * ("2026-09-23T08:45:12"). The Swedish locale formats dates as ISO-like
  * "YYYY-MM-DD HH:MM:SS", so only the space needs replacing.
  */
-export const californiaNow = (): string =>
-  new Date().toLocaleString("sv-SE", { timeZone: "America/Los_Angeles" }).replace(" ", "T");
+export const californiaTime = (date: Date): string =>
+  date.toLocaleString("sv-SE", { timeZone: "America/Los_Angeles" }).replace(" ", "T");
+
+/** The current time in California, in the dataset's format (see `californiaTime`). */
+export const californiaNow = (): string => californiaTime(new Date());
 
 /** The timestamp `days` days before `timestamp`, reading it as UTC (see the note at the top). */
 export const daysBefore = (timestamp: string, days: number): string =>
