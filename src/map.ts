@@ -32,6 +32,12 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 const centerInArea = (center: LngLat) =>
   new LngLat(clamp(center.lng, bounds.getWest(), bounds.getEast()), clamp(center.lat, bounds.getSouth(), bounds.getNorth()));
 
+/**
+ * The view the map opens on: the north half of the lake (Lakeside Park, Grand Avenue, and
+ * Lakeshore), where most requests are. As bounds rather than a zoom, so it frames the same at any size.
+ */
+const DEFAULT_VIEW = new LngLatBounds([-122.264, 37.803], [-122.2475, 37.8118]);
+
 /** How many zoom levels people can zoom out past the view that fits the whole area. */
 const ZOOM_OUT_LEVELS = 1;
 /**
@@ -83,8 +89,7 @@ export const renderMap = (container: HTMLElement, onSelect: OnSelect, signal: Ab
   const map = new MapLibreMap({
     container,
     style: STYLE_URL,
-    bounds,
-    fitBoundsOptions: { padding: 24 },
+    bounds: DEFAULT_VIEW,
     maxZoom: MAX_ZOOM,
     // Replaces MapLibre's default constraint, which is also what applies its min and max zoom, so
     // this applies them too. MapLibre still needs them set, to disable its +/− buttons at the limits.
@@ -98,13 +103,14 @@ export const renderMap = (container: HTMLElement, onSelect: OnSelect, signal: Ab
   // "style.load" fires once the style is parsed, well before the base map finishes loading its
   // map data ("load"), so the fade and dots appear right away.
   map.once("style.load", () => {
-    // Allow a little zooming out from the fitted view, but not so far the lake becomes a speck.
-    minZoom = map.getZoom() - ZOOM_OUT_LEVELS;
+    // Allow zooming out a little past the view that fits the whole area, but not so far the lake
+    // becomes a speck.
+    minZoom = (map.cameraForBounds(bounds, { padding: 24 })?.zoom ?? map.getZoom()) - ZOOM_OUT_LEVELS;
     map.setMinZoom(minZoom);
 
     // Hide everything outside the area by covering it in the card's color, then soften the
     // boundary with a wide blurred line in the same color, so the map fades into the card.
-    const panel = cssVar("--color-series-others");
+    const panel = cssVar("--color-panel");
     map.addSource("outside", {
       type: "geojson",
       data: { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [WORLD, ring] } },

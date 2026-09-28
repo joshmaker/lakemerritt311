@@ -72,10 +72,11 @@ try {
   if (__DATA_UPDATED_AT__) {
     const asOf = getElement("data-as-of");
     asOf.textContent = `Data as of ${updatedTime.format(new Date(__DATA_UPDATED_AT__))}`;
-    asOf.hidden = false;
     // Checked in the viewer's browser, since the page can stay deployed long after its build.
     const updated = new Date(__DATA_UPDATED_AT__);
-    if (Date.now() - updated.getTime() > STALE_AFTER_MS) {
+    const isStale = Date.now() - updated.getTime() > STALE_AFTER_MS;
+    asOf.hidden = isStale; // the warning gives the same date
+    if (isStale) {
       const stale = getElement("stale-data");
       stale.replaceChildren(
         element("strong", "font-semibold", `Oakland's 311 data feed hasn't been updated since ${updatedDay.format(updated)}.`),
@@ -107,18 +108,13 @@ try {
   const year = Number(now.slice(0, 4));
   getElement("issues").hidden = false; // the tray; shown first so the donut can measure its card
   // Issues Resolved first: side by side, the donut's card takes its height from that table.
-  const expandResolved = renderIssuesResolved(getElement("issues-resolved"), summaries, year, ISSUES_PREVIEW_ROWS);
+  renderIssuesResolved(getElement("issues-resolved"), summaries, year, ISSUES_PREVIEW_ROWS);
   renderTopReportedIssues(getElement("top-issues"), summaries, year, colorOf, ISSUES_PREVIEW_ROWS, lifetime.signal);
-  // Side by side, the tray's button expands Issues Resolved, and with it the donut's legend (it
-  // hides itself once the table is expanded). Stacked, the table has its own button.
-  const expandBoth = getElement("issues-expand");
-  expandBoth.textContent = `See all ${String(summaries.length)} issues`;
-  expandBoth.addEventListener("click", expandResolved);
   getElement("charts").hidden = false; // the tray holding both charts and their legend
   const charts = [
     show(
       "chart-category",
-      "311 Requests per Month by Category",
+      "Requests per month",
       stackedBarOption({
         labels: monthly.periods,
         series: monthly.series,
@@ -127,7 +123,7 @@ try {
     ),
     show(
       "chart-weekly",
-      `311 Requests per Week by Category, ${String(year)}`,
+      `Requests per week, ${String(year)}`,
       // Same series, in the same order, as the monthly chart, so each topic keeps its color.
       weeklyStackedOption(weeklyCounts(requests, now, "topic", topics), monthsBefore(now, WEEKLY_ZOOM_MONTHS)),
     ),

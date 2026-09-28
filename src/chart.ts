@@ -167,7 +167,7 @@ const EXPAND_ICON = `<svg ${ICON_ATTRS}><path stroke-linecap="round" stroke-line
 const CLOSE_ICON = `<svg ${ICON_ATTRS}><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>`;
 
 /** Classes that pin a panel over the whole window, above a dimmed page. */
-const FULL_SCREEN = ["fixed", "inset-0", "z-50", "flex", "flex-col", "sm:inset-4", "shadow-[0_0_0_100vmax_rgb(0_0_0/0.45)]"];
+const FULL_SCREEN = ["fixed", "inset-0", "z-50", "flex", "flex-col", "bg-panel", "p-4", "sm:inset-4", "sm:rounded-lg", "shadow-[0_0_0_100vmax_rgb(0_0_0/0.45)]"];
 
 let nextChartId = 0;
 
@@ -190,13 +190,14 @@ const fullScreenLegend = (option: EChartsOption) => {
 };
 
 /**
- * Fills the panel `el` with a `title` heading, a full-screen toggle, and a chart of `option`;
+ * Fills `el` (a section inside a card) with a `title` heading, a full-screen toggle, and a chart of `option`;
  * shows it and keeps the chart sized to its container. Full screen adds a legend (faded for
  * topics hidden with the page legend); Esc or the close button returns it. The chart is
  * disposed when `signal` aborts.
  */
 export const renderChart = (el: HTMLElement, title: string, option: EChartsOption, signal: AbortSignal): Chart => {
-  const heading = element("h2", "text-lg font-semibold", title);
+  // h3: each chart sits under its card's heading (see #charts in index.html).
+  const heading = element("h3", "text-base font-semibold", title);
   heading.id = `chart-title-${String(nextChartId++)}`;
   const toggle = element("button", "-m-1.5 rounded-md p-1.5 text-muted hover:bg-page hover:text-ink");
   toggle.type = "button";

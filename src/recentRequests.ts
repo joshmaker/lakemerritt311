@@ -1,4 +1,4 @@
-import { CONTROL, element, select } from "./dom";
+import { cardHeader, CONTROL, element, select } from "./dom";
 import { matchesTone, STATUS_OPTIONS, statusPill } from "./status";
 import { daysBetween, isTimestamp } from "./time";
 import { type Topic, TOPICS, topicOf } from "./topics";
@@ -94,10 +94,9 @@ export const renderRecentRequests = (el: HTMLElement, requests: ServiceRequest[]
   const controls = element("div", "mb-3 flex flex-wrap gap-2 px-4");
   controls.append(search, statusFilter, topicFilter);
 
-  const count = element("p", "text-xs text-muted");
+  const { header: heading, subtitle: count } = cardHeader("Recent Requests");
+  heading.classList.add("px-4");
   count.setAttribute("aria-live", "polite");
-  const heading = element("div", "mb-2 flex items-baseline justify-between gap-3 px-4");
-  heading.append(element("h2", "text-lg font-semibold", "Recent Requests"), count);
 
   const header = element("div", `hidden gap-x-3 border-b border-line px-4 pb-1 text-xs text-muted wide:grid ${COLUMNS}`);
   header.setAttribute("aria-hidden", "true");

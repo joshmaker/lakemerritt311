@@ -13,7 +13,7 @@ export const renderChartLegend = (
     ...items.map(({ name, color }) => {
       const swatch = element("span", "size-3 shrink-0 rounded-sm");
       swatch.style.backgroundColor = color;
-      const button = element("button", "flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-panel aria-[pressed=false]:opacity-40");
+      const button = element("button", "flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-page aria-[pressed=false]:opacity-40");
       button.type = "button";
       button.setAttribute("aria-pressed", "true");
       button.append(swatch, name);

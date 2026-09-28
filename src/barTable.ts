@@ -1,4 +1,4 @@
-import { element } from "./dom";
+import { cardHeader, element } from "./dom";
 
 export interface BarTableRow {
   label: string;
@@ -24,7 +24,7 @@ export interface BarTable {
   segments?: { label: string; color: string }[];
   /**
    * If set, the table starts collapsed: rows past this many hide, a fade covers its bottom,
-   * and a "See all" pill on its bottom edge (shown below `lg`) expands it.
+   * and a "See all" pill on its bottom edge expands it.
    */
   previewRows?: number;
 }
@@ -59,19 +59,16 @@ export const renderBarTable = (
   { title, subtitle, labelHeader, valueHeaders, rows, segments = DEFAULT_SEGMENTS, previewRows }: BarTable,
 ): (() => void) => {
   const colors = segments.map(({ color }) => color);
-  const note = element("p", "flex flex-wrap items-center justify-end gap-x-3 text-xs text-muted");
-  if (segments.length > 1) {
-    note.append(
-      ...segments.map(({ label, color }) => {
-        const key = element("span", "inline-flex items-center gap-1", label);
-        key.prepend(element("span", `inline-block size-2 rounded-full ${color}`));
-        return key;
-      }),
-    );
-  }
-  note.append(element("span", "", subtitle));
-  const heading = element("div", "mb-2 flex items-baseline justify-between gap-3");
-  heading.append(element("h2", "text-lg font-semibold whitespace-nowrap", title), note);
+  // With more than one segment, a key to their colors sits on the right of the header.
+  const keys = element("p", "flex flex-wrap items-center gap-x-3 pt-1 text-xs text-muted");
+  keys.append(
+    ...segments.map(({ label, color }) => {
+      const key = element("span", "inline-flex items-center gap-1", label);
+      key.prepend(element("span", `inline-block size-2 rounded-full ${color}`));
+      return key;
+    }),
+  );
+  const { header: heading } = segments.length > 1 ? cardHeader(title, subtitle, keys) : cardHeader(title, subtitle);
 
   const barHeader = element("th", "hidden sm:table-cell");
   barHeader.setAttribute("aria-hidden", "true");
@@ -115,10 +112,10 @@ export const renderBarTable = (
   // Fades the last visible rows into the card, hinting there's more below.
   const fade = element("div", "pointer-events-none absolute inset-x-0 bottom-0 hidden h-20 rounded-b-md bg-linear-to-t from-panel to-transparent group-data-collapsed:block");
   fade.setAttribute("aria-hidden", "true");
-  // Straddles the card's bottom edge. Hidden on lg+, where a shared button expands both tables.
+  // Straddles the card's bottom edge, over the faded rows, so it takes no space of its own.
   const seeAll = element(
     "button",
-    "absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-line bg-panel px-3 py-0.5 text-xs font-medium shadow-sm hover:bg-page lg:hidden",
+    "absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-line bg-panel px-3 py-0.5 text-xs font-medium shadow-sm hover:bg-page",
     `See all ${String(rows.length)}`,
   );
   seeAll.type = "button";

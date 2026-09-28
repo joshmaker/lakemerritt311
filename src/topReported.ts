@@ -5,7 +5,7 @@ import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { escapeHtml, FONT } from "./chart";
 import type { TopicSummary } from "./data";
-import { cssVar, element } from "./dom";
+import { cardHeader, cssVar, element } from "./dom";
 
 // LegendComponent is registered for its actions: the HTML legend hides slices through it.
 echarts.use([PieChart, LegendComponent, TooltipComponent, CanvasRenderer]);
@@ -46,11 +46,7 @@ export const renderTopReportedIssues = (
     return percent.format(total > 0 ? count / total : 0);
   };
 
-  const heading = element("div", "mb-2 flex items-baseline justify-between gap-3");
-  heading.append(
-    element("h2", "text-lg font-semibold", "Top Reported Issues"),
-    element("p", "text-xs text-muted", `So far in ${String(year)}`),
-  );
+  const { header: heading } = cardHeader("Top Reported Issues", `So far in ${String(year)}`);
 
   // The donut, with the total of the topics shown in its hole.
   const canvas = element("div", "absolute inset-0");

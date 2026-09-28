@@ -1,5 +1,5 @@
 import { recentPoints, type RequestPoint } from "./data";
-import { CONTROL, element, select } from "./dom";
+import { cardHeader, CONTROL, element, select } from "./dom";
 import type { MapHandle } from "./map";
 import { matchesTone, STATUS_OPTIONS, statusPill } from "./status";
 import { daysBefore } from "./time";
@@ -43,10 +43,8 @@ export interface MapPanel {
  * separately (it's large) and the panel hides again if it fails.
  */
 export const renderMapPanel = (el: HTMLElement, signal: AbortSignal): MapPanel => {
-  const count = element("p", "text-xs text-muted", "Loading requests…");
+  const { header: heading, subtitle: count } = cardHeader("Lake Merritt", "Loading requests…");
   count.setAttribute("aria-live", "polite");
-  const heading = element("div", "mb-3 flex items-baseline justify-between gap-3");
-  heading.append(element("h2", "text-lg font-semibold", "Lake Merritt"), count);
 
   const statusFilter = select("Status", STATUS_OPTIONS);
   const topicFilter = select("Topic", [["", "All topics"], ...TOPICS.map((t): [string, string] => [t, t])]);

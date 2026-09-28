@@ -15,17 +15,16 @@
 <!-- Centered and capped at 1440px so wide monitors don't stretch the tables and charts. -->
 <div class="mx-auto max-w-[90rem]">
 
-<header class="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
-  <div class="flex items-center gap-3">
-    <!-- The park, lake, and bird islands, drawn from data/shapes. Decorative: the heading names it. -->
-    <img src="/src/assets/lake-merritt.svg" alt="" class="h-16 w-auto shrink-0 lg:h-20">
-    <div>
-      <h1 class="text-3xl font-semibold lg:text-4xl">Lake Merritt 311 Requests</h1>
-      <p class="text-sm text-muted">Oakland 311 service requests around Lake Merritt</p>
-    </div>
+<header class="mb-6 flex items-center gap-3">
+  <!-- The park, lake, and bird islands, drawn from data/shapes. Decorative: the heading names it. -->
+  <img src="/src/assets/lake-merritt.svg" alt="" class="h-16 w-auto shrink-0 lg:h-20">
+  <div>
+    <h1 class="text-3xl font-semibold lg:text-4xl">Lake Merritt 311 Requests</h1>
+    <p class="text-sm text-muted">Oakland 311 service requests around Lake Merritt</p>
+    <!-- When the city last updated the data; filled in by main.ts once the data loads (hidden
+         while the stale-data warning, which gives the same date, is showing). -->
+    <p id="data-as-of" class="text-xs text-muted" hidden></p>
   </div>
-  <!-- When the city last updated the data; filled in by main.ts once the data loads. -->
-  <p id="data-as-of" class="text-xs text-muted" hidden></p>
 </header>
 
 <main class="space-y-6">
@@ -34,29 +33,26 @@
   <p id="stale-data" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" hidden></p>
   <!-- Widgets stay hidden until main.ts has data to render into them. -->
   <dl id="stats" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" hidden></dl>
-  <!-- The two issue tables. Each starts collapsed with its own "See all" (see barTable.ts).
-       Side by side (lg+) they sit in one tray with a shared "See all" that expands both;
-       stacked, there's no tray and each card keeps its own button. -->
-  <div id="issues" class="group/issues lg:relative lg:rounded-lg lg:border lg:border-line lg:bg-well lg:p-4" hidden>
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-4">
-      <section id="top-issues" class="panel relative p-4" hidden></section>
-      <section id="issues-resolved" class="panel relative p-4" hidden></section>
-    </div>
-    <!-- Sits on the tray's bottom edge, over the faded rows, so it takes no space of its own.
-         Only on lg+, and only while a card is still collapsed. -->
-    <button id="issues-expand" type="button" class="absolute bottom-2 left-1/2 hidden -translate-x-1/2 rounded-full border border-line bg-panel px-3 py-0.5 text-xs font-medium shadow-sm hover:bg-page lg:group-has-[[data-collapsed]]/issues:block"></button>
+  <!-- The donut and Issues Resolved, side by side on lg+. Issues Resolved starts collapsed with a
+       "See all" button (see barTable.ts); the donut's legend follows it via the group/issues variant. -->
+  <div id="issues" class="group/issues grid grid-cols-1 gap-6 lg:grid-cols-2" hidden>
+    <section id="top-issues" class="panel relative p-4" hidden></section>
+    <section id="issues-resolved" class="panel relative p-4" hidden></section>
   </div>
   <section id="map" class="panel p-4" hidden></section>
-  <!-- The charts and their shared legend, grouped in one tray with the charts as nested cards. -->
-  <div id="charts" class="space-y-3 rounded-lg border border-line bg-well p-3 sm:p-4" hidden>
-    <!-- One legend for both charts: they share topics and colors. Click to show or hide a topic. -->
-    <ul id="chart-legend" class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted" aria-label="Show or hide topics in both charts" hidden></ul>
-    <!-- Side by side on wide (1200px+) windows. -->
-    <div class="grid grid-cols-1 gap-3 sm:gap-4 wide:grid-cols-2">
-      <section id="chart-category" class="panel p-4" hidden></section>
-      <section id="chart-weekly" class="panel p-4" hidden></section>
+  <!-- Both charts in one card, under their shared legend (they share topics and colors). -->
+  <section id="charts" class="panel p-4" hidden>
+    <div class="mb-3">
+      <h2 class="text-lg font-semibold">311 Requests by Category</h2>
+      <p class="text-xs text-muted">Click a topic to show or hide it in both charts</p>
     </div>
-  </div>
+    <ul id="chart-legend" class="mb-4 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted" aria-label="Show or hide topics in both charts" hidden></ul>
+    <!-- Side by side on wide (1200px+) windows. -->
+    <div class="grid grid-cols-1 gap-8 wide:grid-cols-2 wide:gap-6">
+      <section id="chart-category" hidden></section>
+      <section id="chart-weekly" hidden></section>
+    </div>
+  </section>
   <section id="recent-requests" class="panel py-3" hidden></section>
 </main>
 
