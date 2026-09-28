@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lake Merritt 311 Requests</title>
+<link rel="icon" type="image/svg+xml" href="/src/assets/lake-merritt.svg">
 <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body class="bg-page p-4 font-sans text-ink sm:p-6">
@@ -11,9 +12,13 @@
 <div class="mx-auto max-w-[90rem]">
 
 <header class="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
-  <div>
-    <h1 class="text-xl font-semibold">Lake Merritt 311 Requests</h1>
-    <p class="text-sm text-muted">Oakland 311 service requests around Lake Merritt</p>
+  <div class="flex items-center gap-3">
+    <!-- The park, lake, and bird islands, drawn from data/shapes. Decorative: the heading names it. -->
+    <img src="/src/assets/lake-merritt.svg" alt="" class="h-16 w-auto shrink-0 lg:h-20">
+    <div>
+      <h1 class="text-3xl font-semibold lg:text-4xl">Lake Merritt 311 Requests</h1>
+      <p class="text-sm text-muted">Oakland 311 service requests around Lake Merritt</p>
+    </div>
   </div>
   <!-- When the city last updated the data; filled in by main.ts once the data loads. -->
   <p id="data-as-of" class="text-xs text-muted" hidden></p>
