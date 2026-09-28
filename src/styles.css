@@ -12,13 +12,12 @@
   /* `wide:` variant: charts sit side by side and Recent Requests becomes one line per row. */
   --breakpoint-wide: 75rem;
 
-  --color-page: #f4f2ed;
+  /* Cool, light neutrals, so the page sits with the blue and teal data colors and the logo. */
+  --color-page: #f4f6f8;
   --color-panel: #ffffff;
-  /* A tray slightly darker than the page, for grouping cards (e.g. the charts and their legend). */
-  --color-well: #e9e6df;
-  --color-ink: #0b0b0b;
-  --color-muted: #52514e;
-  --color-line: #e2dfd8;
+  --color-ink: #111827;
+  --color-muted: #5b6573;
+  --color-line: #e1e6ec;
 
   /*
    * Chart series colors, used in this order (Flat UI style). Ordered so neighbors in a
@@ -54,6 +53,11 @@
     /* Raleway defaults to old-style digits (the "311" dips); use full-height ones. */
     font-variant-numeric: lining-nums;
   }
+}
+
+/* A loading placeholder (see index.html). Pulses unless the viewer prefers reduced motion. */
+@utility skeleton {
+  @apply rounded-md bg-line motion-safe:animate-pulse;
 }
 
 /* A white card with a thin border; the base for every widget. */

@@ -175,7 +175,13 @@ try {
   renderRecentRequests(getElement("recent-requests"), newestFirst(requests), now, RECENT_PAGE_SIZE);
 } catch (err) {
   if (!lifetime.signal.aborted) {
+    // Hide the cards still showing their loading placeholders (see index.html), and their groups.
+    for (const placeholder of document.querySelectorAll("[data-skeleton]")) {
+      const card = placeholder.parentElement?.closest<HTMLElement>("#stats, #issues, #charts, #recent-requests");
+      if (card) card.hidden = true;
+    }
     statusEl.textContent = `Error loading data: ${err instanceof Error ? err.message : String(err)}`;
+    statusEl.classList.remove("sr-only");
     statusEl.hidden = false;
     console.error(err);
   }

@@ -7,7 +7,7 @@ export const TONES = {
   active: { label: "Open", pill: "bg-sky-100 text-sky-800" },
   waiting: { label: "Pending", pill: "bg-amber-100 text-amber-800" },
   done: { label: "Resolved", pill: "bg-emerald-100 text-emerald-800" },
-  ended: { label: "Closed without a fix", pill: "bg-stone-200 text-stone-700" },
+  ended: { label: "Closed without a fix", pill: "bg-slate-200 text-slate-700" },
 };
 type Tone = keyof typeof TONES;
 
