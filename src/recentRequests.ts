@@ -96,6 +96,9 @@ const whole = new Intl.NumberFormat();
  * `pageSize` at a time with a button for more. Replaces any earlier content and shows `el`.
  */
 export const renderRecentRequests = (el: HTMLElement, requests: ServiceRequest[], now: string, pageSize: number): void => {
+  // The oldest request's year (requests are newest first), e.g. " (reported since 2018)".
+  const oldest = requests.at(-1)?.datetimeinit.slice(0, 4);
+  const since = oldest ? ` (reported since ${oldest})` : "";
   const entries: Entry[] = requests.map((request) => {
     const topic = topicOf(request.description);
     return { request, topic, searchText: [request.requestid, topic, request.description, request.probaddress].join(" ").toLowerCase() };
@@ -134,7 +137,7 @@ export const renderRecentRequests = (el: HTMLElement, requests: ServiceRequest[]
     );
     const visible = matches.slice(0, shown);
     list.replaceChildren(...visible.map((entry) => row(entry, now)));
-    count.textContent = `Showing ${whole.format(visible.length)} of ${whole.format(matches.length)}`;
+    count.textContent = `Showing ${whole.format(visible.length)} of ${whole.format(matches.length)}${since}`;
     empty.hidden = matches.length > 0;
     more.hidden = matches.length <= shown;
     const remaining = matches.length - shown;
