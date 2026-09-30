@@ -62,7 +62,8 @@ export interface ServiceRequest {
   status: RequestStatus;
   /** Who the request was referred to. Only present when status is "REFERRED". */
   referredto?: string;
-  /** Longitude, as a numeric string. May be missing. (SoQL: make_point(sry, srx)) */
+  /** Longitude, as a numeric string. May be missing. (SoQL: make_point(sry, srx), i.e. lat, lng.)
+   *  Any official-docs wording that says otherwise is mistaken: srx is longitude. */
   srx?: string;
   /** Latitude, as a numeric string. May be missing. */
   sry?: string;
