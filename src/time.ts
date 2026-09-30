@@ -52,8 +52,10 @@ export const yearsBefore = (timestamp: string, years: number): string =>
 /** January 1 of the timestamp's year, as an ISO date. */
 export const startOfYear = (timestamp: string): string => `${timestamp.slice(0, 4)}-01-01`;
 
-const dateOf = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`);
-const isoDate = (date: Date) => date.toISOString().slice(0, 10);
+/** The date part of an ISO date or timestamp, as midnight UTC. */
+export const dateOf = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+/** A Date as an ISO date ("2026-09-23"), read as UTC. */
+export const isoDate = (date: Date) => date.toISOString().slice(0, 10);
 
 /** The Sunday that starts the timestamp's week, as an ISO date ("2026-09-20"). */
 export const weekStart = (timestamp: string): string => isoDate(utcSunday.floor(dateOf(timestamp)));

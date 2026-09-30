@@ -15,6 +15,7 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 // The outline padded outward by 60 m (regenerate with `npm run buffer-shape`).
 import outline from "../data/shapes/geojson-padded.json";
 import { cssVar } from "./dom";
+import { HEAT_COLORS } from "./heat";
 
 setWorkerUrl(workerUrl);
 
@@ -66,9 +67,14 @@ export interface MapPoint {
 }
 
 export interface MapHandle {
-  /** Replaces the dots on the map. Safe to call before the map has finished loading. */
-  showPoints: (points: MapPoint[]) => void;
+  /**
+   * Replaces the dots on the map. Safe to call before the map has finished loading. With `heat`,
+   * shows them as a heatmap instead of bubbles, each point adding `heat.weight` to the glow
+   * (lower it when there are many points, so busy periods don't all saturate).
+   */
+  showPoints: (points: MapPoint[], heat?: { weight: number }) => void;
 }
+
 
 /**
  * Called when someone clicks the map, with the indices (into the latest `showPoints` list)
@@ -213,7 +219,30 @@ export const renderMap = (container: HTMLElement, onSelect: OnSelect, signal: Ab
       map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", layer, () => (map.getCanvas().style.cursor = ""));
     }
+
+    // The heatmap, for watching activity move over time: bubbles regroup every time the points
+    // change, but a glow stays put where requests are and fades where they stop. It needs the
+    // points ungrouped, so it has its own source.
+    map.addSource("requests-heat", { type: "geojson", data: pointFeatures([]) });
+    const [c1 = "", c2 = "", c3 = "", c4 = "", c5 = ""] = HEAT_COLORS;
+    map.addLayer({
+      id: "heat",
+      type: "heatmap",
+      source: "requests-heat",
+      layout: { visibility: "none" },
+      paint: {
+        "heatmap-weight": 1,
+        // Wider glows as you zoom in, so the same spot stays a similar size on screen.
+        "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 12, 12, 16, 60, 19, 200],
+        "heatmap-opacity": 0.8,
+        "heatmap-color": [
+          "interpolate", ["linear"], ["heatmap-density"],
+          0, "rgba(116, 185, 255, 0)", 0.1, c1, 0.3, c2, 0.5, c3, 0.75, c4, 1, c5,
+        ],
+      },
+    });
   };
+  const CLUSTER_LAYERS = ["clusters", "cluster-counts", "points"];
 
   signal.addEventListener(
     "abort",
@@ -224,12 +253,16 @@ export const renderMap = (container: HTMLElement, onSelect: OnSelect, signal: Ab
   );
 
   return {
-    showPoints: (next) => {
+    showPoints: (next, heat) => {
       points = next;
       void loaded.then(() => {
-        const source = map.getSource<GeoJSONSource>("requests");
-        if (source) void source.setData(pointFeatures(points));
-        else addPointLayers();
+        if (!map.getSource("requests")) addPointLayers();
+        // Only the visible layer's source gets the points; the other is emptied.
+        void map.getSource<GeoJSONSource>("requests")?.setData(pointFeatures(heat ? [] : points));
+        void map.getSource<GeoJSONSource>("requests-heat")?.setData(pointFeatures(heat ? points : []));
+        if (heat) map.setPaintProperty("heat", "heatmap-weight", heat.weight);
+        map.setLayoutProperty("heat", "visibility", heat ? "visible" : "none");
+        for (const id of CLUSTER_LAYERS) map.setLayoutProperty(id, "visibility", heat ? "none" : "visible");
       });
     },
   };
