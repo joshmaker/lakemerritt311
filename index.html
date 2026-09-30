@@ -4,7 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lake Merritt 311 Requests</title>
+<meta name="description" content="Oakland 311 service requests around Lake Merritt">
 <link rel="icon" type="image/svg+xml" href="/src/assets/lake-merritt.svg">
+<!-- Home-screen icon for iPhone and iPad (public/, a PNG copy of the logo on white). -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<!--
+  Link previews (Facebook, Slack, iMessage, LinkedIn, X, …) and search results. The image is a
+  1200px PNG of the logo on white in public/: previews don't show SVGs, and they need full URLs.
+-->
+<link rel="canonical" href="https://lakemerritt311.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lake Merritt 311 Requests">
+<meta property="og:title" content="Lake Merritt 311 Requests">
+<meta property="og:description" content="Oakland 311 service requests around Lake Merritt">
+<meta property="og:url" content="https://lakemerritt311.com/">
+<meta property="og:image" content="https://lakemerritt311.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="1200">
+<meta property="og:image:alt" content="Map of Lake Merritt and the surrounding park">
+<meta name="twitter:card" content="summary">
 <!-- Start downloading the data now, alongside the scripts, instead of once main.ts runs. Vite
      rewrites this to the same hashed file main.ts fetches. -->
 <link rel="preload" href="data/api/311.json" as="fetch" crossorigin>
