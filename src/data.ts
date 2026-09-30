@@ -1,4 +1,4 @@
-import { groupSort, rollup } from "d3-array";
+import { groupSort, min, rollup } from "d3-array";
 import { TOPICS, type Topic, topicOf } from "./topics";
 import {
   daysBefore,
@@ -213,13 +213,16 @@ export interface RequestPoint {
   lat: number;
 }
 
+/** The date (ISO, "YYYY-MM-DD") of the oldest request, or undefined if there are none. */
+export const earliestDay = (rows: ServiceRequests): string | undefined =>
+  min(rows, ({ datetimeinit }) => (isTimestamp(datetimeinit) ? datetimeinit : undefined))?.slice(0, 10);
+
 /**
- * Requests opened since `since` (a California timestamp) that have usable coordinates, newest
- * first. srx is longitude and sry latitude; missing or blank ones are skipped.
+ * Requests that have usable coordinates, newest first. srx is longitude and sry latitude;
+ * missing or blank ones are skipped.
  */
-export const recentPoints = (rows: ServiceRequests, since: string): RequestPoint[] =>
+export const locatedRequests = (rows: ServiceRequests): RequestPoint[] =>
   newestFirst(rows).flatMap((request) => {
-    if (request.datetimeinit < since) return [];
     const [lng, lat] = [Number(request.srx || NaN), Number(request.sry || NaN)];
     if (!Number.isFinite(lng) || !Number.isFinite(lat)) return [];
     return [{ request, topic: topicOf(request.description), lng, lat }];

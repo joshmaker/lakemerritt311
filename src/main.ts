@@ -164,7 +164,8 @@ try {
       weeklyStackedOption(weeklyCounts(requests, now, "topic", topics), monthsBefore(now, WEEKLY_ZOOM_MONTHS)),
     ),
   ];
-  mapPanel.showRequests(requests, now, colorOf);
+  // The map's date filter ends on the day the city last updated the data (today if that's unknown).
+  mapPanel.showRequests(requests, (updated ? californiaTime(updated) : now).slice(0, 10), colorOf);
 
   renderChartLegend(
     getElement("chart-legend"),

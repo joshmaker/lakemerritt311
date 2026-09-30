@@ -1,4 +1,4 @@
-import { recentPoints, type RequestPoint } from "./data";
+import { earliestDay, locatedRequests, type RequestPoint } from "./data";
 import { cardHeader, CONTROL, element, select } from "./dom";
 import type { MapHandle } from "./map";
 import { matchesTone, STATUS_OPTIONS, statusPill } from "./status";
@@ -23,11 +23,13 @@ const nearViewport = (el: Element, signal: AbortSignal) =>
     }, { once: true });
   });
 
-/** Choices for the date filter, in days. */
-const DAY_OPTIONS = [7, 15, 30, 60, 90, 120];
+/** The date range starts out this many days long, ending on the latest date. */
 const DEFAULT_DAYS = 30;
 
 const whole = new Intl.NumberFormat();
+const longDay = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeZone: "UTC" });
+/** An ISO date ("2026-09-23") as text, e.g. "Sep 23, 2026". */
+const formatDay = (day: string) => longDay.format(Date.parse(`${day}T00:00:00Z`));
 const openedDay = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
 const plural = (n: number, word: string) => `${whole.format(n)} ${word}${n === 1 ? "" : "s"}`;
 
@@ -50,8 +52,12 @@ const pickedRow = ({ request, topic }: RequestPoint) => {
 };
 
 export interface MapPanel {
-  /** Puts `requests` on the map, colored by topic with `colorOf`. `now` is a California timestamp. */
-  showRequests: (requests: ServiceRequests, now: string, colorOf: (topic: string) => string) => void;
+  /**
+   * Puts `requests` on the map, colored by topic with `colorOf`. `latestDay` is the last date the
+   * date filter allows (an ISO date): when the data was last updated. The first allowed date is
+   * the oldest request's.
+   */
+  showRequests: (requests: ServiceRequests, latestDay: string, colorOf: (topic: string) => string) => void;
 }
 
 /**
@@ -65,13 +71,29 @@ export const renderMapPanel = (el: HTMLElement, signal: AbortSignal): MapPanel =
 
   const statusFilter = select("Status", STATUS_OPTIONS);
   const topicFilter = select("Topic", [["", "All topics"], ...TOPICS.map((t): [string, string] => [t, t])]);
-  const daysFilter = select(
-    "Opened in",
-    DAY_OPTIONS.map((days): [string, string] => [String(days), `Last ${String(days)} days`]),
-  );
-  daysFilter.value = String(DEFAULT_DAYS);
-  const filters = element("div", "grid grid-cols-1 gap-2 sm:grid-cols-3 lg:col-start-2 lg:row-start-1 lg:grid-cols-1");
-  filters.append(statusFilter, topicFilter, daysFilter);
+
+  // The date range: two calendar pickers, off until the data arrives and tells us their limits.
+  const dateField = (label: string) => {
+    const input = element("input", `${CONTROL} min-w-0 w-full`);
+    input.type = "date";
+    input.disabled = true;
+    const field = element("label", "grid gap-1 text-xs text-muted", label);
+    field.append(input);
+    return { field, input };
+  };
+  const { field: startField, input: startInput } = dateField("Opened from");
+  const { field: endField, input: endInput } = dateField("to");
+  const dateError = element("p", "text-xs text-red-700");
+  dateError.setAttribute("role", "alert");
+  dateError.hidden = true;
+  const dates = element("div", "grid grid-cols-2 gap-2");
+  dates.append(startField, endField);
+  // Two columns of filters from sm up, so the dates take the full row; one column on lg+.
+  const dateGroup = element("div", "space-y-1 sm:col-span-2 lg:col-span-1");
+  dateGroup.append(dates, dateError);
+
+  const filters = element("div", "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:col-start-2 lg:row-start-1 lg:grid-cols-1");
+  filters.append(statusFilter, topicFilter, dateGroup);
 
   // A placeholder (the `skeleton` class) until the map library arrives.
   const container = element("div", "skeleton h-96 overflow-hidden rounded lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:h-full");
@@ -101,7 +123,11 @@ export const renderMapPanel = (el: HTMLElement, signal: AbortSignal): MapPanel =
 
   let all: RequestPoint[] = [];
   let shown: RequestPoint[] = [];
-  let now = "";
+  // The allowed dates, and the range now chosen (ISO dates; empty until the data arrives).
+  let earliest = "";
+  let latest = "";
+  let start = "";
+  let end = "";
   let colorOf: (topic: string) => string = () => "";
 
   /** Lists the given requests (indices into `shown`) in the table, or shows the hint if none. */
@@ -135,11 +161,11 @@ export const renderMapPanel = (el: HTMLElement, signal: AbortSignal): MapPanel =
     });
 
   const update = () => {
-    if (!now) return; // no requests yet
-    const since = daysBefore(now, Number(daysFilter.value));
+    if (!latest) return; // no requests yet
     shown = all.filter(
       ({ request, topic }) =>
-        request.datetimeinit >= since &&
+        request.datetimeinit.slice(0, 10) >= start &&
+        request.datetimeinit.slice(0, 10) <= end &&
         matchesTone(request.status, statusFilter.value) &&
         (!topicFilter.value || topic === topicFilter.value),
     );
@@ -148,12 +174,43 @@ export const renderMapPanel = (el: HTMLElement, signal: AbortSignal): MapPanel =
     const points = shown.map(({ lng, lat, topic }) => ({ lng, lat, color: colorOf(topic) }));
     void mapReady.then((map) => map?.showPoints(points));
   };
-  for (const filter of [statusFilter, topicFilter, daysFilter]) filter.addEventListener("change", update);
+  for (const filter of [statusFilter, topicFilter]) filter.addEventListener("change", update);
+
+  /** Shows the chosen range in the pickers, and limits each to dates that keep the range valid (start before end). */
+  const syncDates = () => {
+    [startInput.value, endInput.value] = [start, end];
+    [startInput.min, startInput.max] = [earliest, end];
+    [endInput.min, endInput.max] = [start, latest];
+  };
+  // Typed dates can go past a picker's limits, so check them here: take a valid range, and put
+  // the pickers back (with a note) otherwise.
+  const changeDates = () => {
+    const [newStart, newEnd] = [startInput.value, endInput.value];
+    const valid = newStart >= earliest && newEnd <= latest && newStart <= newEnd; // "" fails the first two
+    dateError.hidden = valid;
+    if (valid) {
+      [start, end] = [newStart, newEnd];
+      update();
+    } else {
+      dateError.textContent = `Pick dates from ${formatDay(earliest)} to ${formatDay(latest)}, with the start on or before the end.`;
+    }
+    syncDates();
+  };
+  startInput.addEventListener("change", changeDates);
+  endInput.addEventListener("change", changeDates);
 
   return {
-    showRequests: (requests, today, topicColor) => {
-      [now, colorOf] = [today, topicColor];
-      all = recentPoints(requests, daysBefore(now, Math.max(...DAY_OPTIONS)));
+    showRequests: (requests, latestDay, topicColor) => {
+      colorOf = topicColor;
+      all = locatedRequests(requests);
+      latest = latestDay;
+      earliest = earliestDay(requests) ?? latestDay;
+      // The last DEFAULT_DAYS days up to the latest date, counting both ends.
+      end = latest;
+      start = daysBefore(`${latest}T00:00:00`, DEFAULT_DAYS - 1).slice(0, 10);
+      if (start < earliest) start = earliest;
+      startInput.disabled = endInput.disabled = false;
+      syncDates();
       update();
     },
   };
